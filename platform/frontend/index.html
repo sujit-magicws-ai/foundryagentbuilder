@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Builder Platform</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1><span>Agent</span> Builder</h1>
+      <nav>
+        <a href="index.html">Agents</a>
+        <a href="builder.html">New Agent</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <h2>Deployed Agents</h2>
+      <a href="builder.html" class="btn btn-primary">+ Create New Agent</a>
+    </div>
+
+    <div id="agents-container">
+      <div class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading agents...</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API = window.location.origin;
+
+    async function loadAgents() {
+      const container = document.getElementById('agents-container');
+      try {
+        const res = await fetch(`${API}/api/agents`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const agents = await res.json();
+
+        if (agents.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <h3>No agents deployed yet</h3>
+              <p>Create your first agent to get started.</p>
+              <a href="builder.html" class="btn btn-primary" style="margin-top:16px">+ Create Agent</a>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = `<div class="card-grid">${agents.map(a => `
+          <div class="card agent-card" onclick="openAgent('${a.name}')">
+            <h3>${escHtml(a.name)}</h3>
+            <div class="agent-meta">v${a.version} &middot; ${escHtml(a.id.substring(0, 8))}...</div>
+            <p style="font-size:.85rem;color:var(--text-secondary)">${escHtml(a.description || '')}</p>
+          </div>`).join('')}</div>`;
+      } catch (err) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>Failed to load agents</h3>
+            <p>${escHtml(err.message)}</p>
+          </div>`;
+      }
+    }
+
+    function openAgent(name) {
+      window.location.href = `builder.html?agent=${encodeURIComponent(name)}`;
+    }
+
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    loadAgents();
+  </script>
+</body>
+</html>

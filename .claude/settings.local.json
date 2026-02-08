@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\\\Users\\\\SujitSarkar\\\\OneDrive - pursuit software development pvt. ltd\\\\CODE\\\\FOUNDRYSKILL\\\\.venv\\\\Scripts\\\\python.exe\" -c \"from azure.ai.projects.operations import AgentsOperations; help\\(AgentsOperations.create\\)\")",
+      "Bash(\"C:\\\\Users\\\\SujitSarkar\\\\OneDrive - pursuit software development pvt. ltd\\\\CODE\\\\FOUNDRYSKILL\\\\.venv\\\\Scripts\\\\python.exe\" -c \"\nfrom azure.ai.projects import AIProjectClient\nprint\\(''agents:'', [m for m in dir\\(AIProjectClient.agents.fget\\) if not m.startswith\\(''_''\\)]\\)\n\")",
+      "Bash(\"C:\\\\Users\\\\SujitSarkar\\\\OneDrive - pursuit software development pvt. ltd\\\\CODE\\\\FOUNDRYSKILL\\\\.venv\\\\Scripts\\\\python.exe\" -c \"\nimport azure.ai.projects.operations as ops\nprint\\([x for x in dir\\(ops\\) if ''Operations'' in x]\\)\n\")",
+      "Bash(\"C:\\\\Users\\\\SujitSarkar\\\\OneDrive - pursuit software development pvt. ltd\\\\CODE\\\\FOUNDRYSKILL\\\\.venv\\\\Scripts\\\\python.exe\" -c \"\nfrom azure.ai.projects.models import PromptAgentDefinition\nhelp\\(PromptAgentDefinition.__init__\\)\n\")",
+      "Bash(\"C:\\\\Users\\\\SujitSarkar\\\\OneDrive - pursuit software development pvt. ltd\\\\CODE\\\\FOUNDRYSKILL\\\\.venv\\\\Scripts\\\\python.exe\" -c \"\nfrom azure.ai.projects.models import PromptAgentDefinition\nimport inspect\n# Check what fields it accepts\np = PromptAgentDefinition\\(model=''test'', instructions=''test''\\)\nprint\\(type\\(p\\)\\)\nprint\\(dict\\(p\\)\\)\n\")",
+      "Bash(\"C:\\\\Users\\\\SujitSarkar\\\\OneDrive - pursuit software development pvt. ltd\\\\CODE\\\\FOUNDRYSKILL\\\\.venv\\\\Scripts\\\\python.exe\" -c:*)",
+      "Bash(\"C:\\\\Users\\\\SujitSarkar\\\\OneDrive - pursuit software development pvt. ltd\\\\CODE\\\\FOUNDRYSKILL\\\\.venv\\\\Scripts\\\\python.exe\" -c \"\nimport azure.ai.agents as agents\nprint\\(''version:'', agents.__version__ if hasattr\\(agents, ''__version__''\\) else ''unknown''\\)\nfrom azure.ai.agents import AgentsClient\nprint\\([m for m in dir\\(AgentsClient\\) if not m.startswith\\(''_''\\)]\\)\n\")",
+      "WebSearch",
+      "Bash(.venvScriptspython -c \"import azure.ai.projects; print\\(azure.ai.projects.__version__\\)\")",
+      "Bash(\".venv/Scripts/python.exe\" -c \"import azure.ai.projects; print\\(azure.ai.projects.__version__\\)\")",
+      "WebFetch(domain:www.strathweb.com)",
+      "Bash(\".venv/Scripts/python.exe\":*)",
+      "WebFetch(domain:github.com)",
+      "Bash(ls -la \"C:\\\\Users\\\\SujitSarkar\\\\OneDrive - pursuit software development pvt. ltd\\\\CODE\\\\FOUNDRYSKILL\\\\platform\\\\backend\"\" && echo \"---\" && ls -la \"C:UsersSujitSarkarOneDrive - pursuit software development pvt. ltdCODEFOUNDRYSKILLplatformfrontend\"\")"
+    ]
+  }
+}

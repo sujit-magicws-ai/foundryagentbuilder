@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Builder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1><span>Agent</span> Builder</h1>
+      <nav>
+        <a href="index.html">Agents</a>
+        <a href="builder.html">New Agent</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Step Indicator -->
+    <div class="steps" id="step-indicator"></div>
+
+    <!-- Step Content -->
+    <div id="step-content"></div>
+  </main>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="modal-backdrop" class="modal-backdrop" style="display:none">
+    <div class="modal">
+      <h3>Delete Agent</h3>
+      <p>Are you sure you want to delete <strong id="modal-agent-name"></strong>? This will remove all versions from the Foundry portal.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="modal-confirm-btn" onclick="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+{
+  "tools": [
+    {
+      "id": "mock-weather",
+      "name": "Weather API",
+      "description": "Get current weather for any city",
+      "type": "openapi",
+      "category": "utilities",
+      "icon": "cloud",
+      "deploy_params": {
+        "spec_url": {
+          "label": "OpenAPI Spec URL",
+          "type": "string",
+          "default": "https://foundryskill-mock-apis.azurewebsites.net/openapi.json",
+          "required": true
+        },
+        "operations": {
+          "label": "Operations to include",
+          "type": "multi_select",
+          "options": ["getWeather"],
+          "default": ["getWeather"],
+          "required": true
+        },
+        "auth_type": {
+          "label": "Authentication",
+          "type": "select",
+          "options": ["anonymous", "project_connection", "managed_identity"],
+          "default": "anonymous",
+          "required": true
+        },
+        "project_connection_id": {
+          "label": "Project Connection",
+          "type": "connection_picker",
+          "default": "",
+          "required": false,
+          "show_if": {"auth_type": "project_connection"},
+          "description": "Select a connection from your Azure AI Foundry project"
+        }
+      },
+      "runtime_params": {
+        "default_units": {
+          "label": "Temperature units",
+          "type": "select",
+          "options": ["fahrenheit", "celsius"],
+          "default": "fahrenheit",
+          "required": false,
+          "inject_into": "instructions"
+        },
+        "default_location": {
+          "label": "Default city (if user doesn't specify)",
+          "type": "string",
+          "default": "",
+          "required": false,
+          "placeholder": "e.g. Seattle",
+          "inject_into": "instructions"
+        }
+      }
+    },
+    {
+      "id": "mock-currency",
+      "name": "Currency Converter",
+      "description": "Convert between currencies with live rates",
+      "type": "openapi",
+      "category": "utilities",
+      "icon": "dollar",
+      "deploy_params": {
+        "spec_url": {
+          "label": "OpenAPI Spec URL",
+          "type": "string",
+          "default": "https://foundryskill-mock-apis.azurewebsites.net/openapi.json",
+          "required": true
+        },
+        "operations": {
+          "label": "Operations to include",
+          "type": "multi_select",
+          "options": ["convertCurrency"],
+          "default": ["convertCurrency"],
+          "required": true
+        },
+        "auth_type": {
+          "label": "Authentication",
+          "type": "select",
+          "options": ["anonymous", "project_connection", "managed_identity"],
+          "default": "anonymous",
+          "required": true
+        },
+        "project_connection_id": {
+          "label": "Project Connection",
+          "type": "connection_picker",
+          "default": "",
+          "required": false,
+          "show_if": {"auth_type": "project_connection"}
+        }
+      },
+      "runtime_params": {
+        "base_currency": {
+          "label": "Default base currency",
+          "type": "string",
+          "default": "USD",
+          "required": false,
+          "inject_into": "instructions"
+        }
+      }
+    },
+    {
+      "id": "ms-learn-docs",
+      "name": "Microsoft Learn Docs",
+      "description": "Search and read Microsoft documentation",
+      "type": "mcp",
+      "category": "knowledge",
+      "icon": "book",
+      "deploy_params": {
+        "server_url": {
+          "label": "MCP Server URL",
+          "type": "string",
+          "default": "https://learn.microsoft.com/api/mcp",
+          "required": true
+        },
+        "require_approval": {
+          "label": "Require approval for tool calls",
+          "type": "select",
+          "options": ["never", "always"],
+          "default": "never",
+          "required": true
+        },
+        "allowed_tools": {
+          "label": "Restrict to specific tools (comma-separated, blank = all)",
+          "type": "string",
+          "default": "",
+          "required": false
+        }
+      },
+      "runtime_params": {
+        "search_scope": {
+          "label": "Documentation scope",
+          "type": "select",
+          "options": ["all", "azure", "dotnet", "python"],
+          "default": "all",
+          "required": false,
+          "inject_into": "instructions"
+        },
+        "response_style": {
+          "label": "Response style",
+          "type": "select",
+          "options": ["concise", "detailed", "step-by-step"],
+          "default": "concise",
+          "required": false,
+          "inject_into": "instructions"
+        }
+      }
+    },
+    {
+      "id": "gitmcp-repo",
+      "name": "GitHub Repo Reader",
+      "description": "Read and search any public GitHub repository",
+      "type": "mcp",
+      "category": "knowledge",
+      "icon": "github",
+      "deploy_params": {
+        "owner": {
+          "label": "Repository Owner",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "placeholder": "e.g. microsoft"
+        },
+        "repo": {
+          "label": "Repository Name",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "placeholder": "e.g. azure-sdk-for-python"
+        },
+        "require_approval": {
+          "label": "Require approval for tool calls",
+          "type": "select",
+          "options": ["never", "always"],
+          "default": "never",
+          "required": true
+        }
+      },
+      "runtime_params": {
+        "focus_area": {
+          "label": "Focus area in repo",
+          "type": "string",
+          "default": "",
+          "required": false,
+          "placeholder": "e.g. src/authentication, README",
+          "inject_into": "instructions"
+        }
+      }
+    },
+    {
+      "id": "azure-ocr",
+      "name": "Document OCR Service",
+      "description": "Extract text, tables, and key-value pairs from PDFs and images using Azure Document Intelligence",
+      "type": "openapi",
+      "category": "document-ai",
+      "icon": "scan",
+      "deploy_params": {
+        "spec_url": {
+          "label": "OpenAPI Spec URL",
+          "type": "string",
+          "default": "https://azure-ocr-service.yellowsand-8df53b61.centralindia.azurecontainerapps.io/openapi.json",
+          "required": true
+        },
+        "operations": {
+          "label": "Operations to include",
+          "type": "multi_select",
+          "options": [
+            "analyze_from_url_analyze_url_post",
+            "get_available_models_models_get",
+            "get_blob_records_blob_records_get",
+            "get_blob_records_summary_blob_records_summary_get",
+            "get_blob_record_by_id_blob_records__record_id__get",
+            "delete_blob_record_blob_records__record_id__delete"
+          ],
+          "default": [
+            "analyze_from_url_analyze_url_post",
+            "get_available_models_models_get",
+            "get_blob_records_blob_records_get"
+          ],
+          "required": true
+        },
+        "auth_type": {
+          "label": "Authentication",
+          "type": "select",
+          "options": ["anonymous", "project_connection", "managed_identity"],
+          "default": "anonymous",
+          "required": true
+        },
+        "project_connection_id": {
+          "label": "Project Connection",
+          "type": "connection_picker",
+          "default": "",
+          "required": false,
+          "show_if": {"auth_type": "project_connection"},
+          "description": "Select a connection from your Azure AI Foundry project"
+        }
+      },
+      "runtime_params": {
+        "default_model": {
+          "label": "Default extraction model",
+          "type": "select",
+          "options": ["prebuilt-read", "prebuilt-document", "prebuilt-layout", "prebuilt-invoice", "prebuilt-receipt"],
+          "default": "prebuilt-document",
+          "required": false,
+          "inject_into": "instructions"
+        },
+        "output_preference": {
+          "label": "Output focus",
+          "type": "select",
+          "options": ["key-value pairs", "full text", "tables", "all"],
+          "default": "key-value pairs",
+          "required": false,
+          "inject_into": "instructions"
+        }
+      }
+    },
+    {
+      "id": "code-interpreter",
+      "name": "Code Interpreter",
+      "description": "Run Python code (math, data analysis, charts)",
+      "type": "builtin",
+      "category": "compute",
+      "icon": "code",
+      "deploy_params": {},
+      "runtime_params": {
+        "language_preference": {
+          "label": "Preferred coding style",
+          "type": "select",
+          "options": ["python3", "pandas-heavy", "minimal"],
+          "default": "python3",
+          "required": false,
+          "inject_into": "instructions"
+        }
+      }
+    }
+  ]
+}
