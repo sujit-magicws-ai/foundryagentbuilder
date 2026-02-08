@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+gunicorn
 pydantic-settings
 azure-ai-projects>=2.0.0b3
 azure-identity
