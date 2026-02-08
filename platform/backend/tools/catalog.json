@@ -7,6 +7,7 @@
       "type": "openapi",
       "category": "utilities",
       "icon": "cloud",
+      "source": "builtin",
       "deploy_params": {
         "spec_url": {
           "label": "OpenAPI Spec URL",
@@ -17,14 +18,22 @@
         "operations": {
           "label": "Operations to include",
           "type": "multi_select",
-          "options": ["getWeather"],
-          "default": ["getWeather"],
+          "options": [
+            "getWeather"
+          ],
+          "default": [
+            "getWeather"
+          ],
           "required": true
         },
         "auth_type": {
           "label": "Authentication",
           "type": "select",
-          "options": ["anonymous", "project_connection", "managed_identity"],
+          "options": [
+            "anonymous",
+            "project_connection",
+            "managed_identity"
+          ],
           "default": "anonymous",
           "required": true
         },
@@ -33,7 +42,9 @@
           "type": "connection_picker",
           "default": "",
           "required": false,
-          "show_if": {"auth_type": "project_connection"},
+          "show_if": {
+            "auth_type": "project_connection"
+          },
           "description": "Select a connection from your Azure AI Foundry project"
         }
       },
@@ -41,7 +52,10 @@
         "default_units": {
           "label": "Temperature units",
           "type": "select",
-          "options": ["fahrenheit", "celsius"],
+          "options": [
+            "fahrenheit",
+            "celsius"
+          ],
           "default": "fahrenheit",
           "required": false,
           "inject_into": "instructions"
@@ -63,6 +77,7 @@
       "type": "openapi",
       "category": "utilities",
       "icon": "dollar",
+      "source": "builtin",
       "deploy_params": {
         "spec_url": {
           "label": "OpenAPI Spec URL",
@@ -73,14 +88,22 @@
         "operations": {
           "label": "Operations to include",
           "type": "multi_select",
-          "options": ["convertCurrency"],
-          "default": ["convertCurrency"],
+          "options": [
+            "convertCurrency"
+          ],
+          "default": [
+            "convertCurrency"
+          ],
           "required": true
         },
         "auth_type": {
           "label": "Authentication",
           "type": "select",
-          "options": ["anonymous", "project_connection", "managed_identity"],
+          "options": [
+            "anonymous",
+            "project_connection",
+            "managed_identity"
+          ],
           "default": "anonymous",
           "required": true
         },
@@ -89,7 +112,9 @@
           "type": "connection_picker",
           "default": "",
           "required": false,
-          "show_if": {"auth_type": "project_connection"}
+          "show_if": {
+            "auth_type": "project_connection"
+          }
         }
       },
       "runtime_params": {
@@ -109,6 +134,7 @@
       "type": "mcp",
       "category": "knowledge",
       "icon": "book",
+      "source": "builtin",
       "deploy_params": {
         "server_url": {
           "label": "MCP Server URL",
@@ -119,7 +145,10 @@
         "require_approval": {
           "label": "Require approval for tool calls",
           "type": "select",
-          "options": ["never", "always"],
+          "options": [
+            "never",
+            "always"
+          ],
           "default": "never",
           "required": true
         },
@@ -134,7 +163,12 @@
         "search_scope": {
           "label": "Documentation scope",
           "type": "select",
-          "options": ["all", "azure", "dotnet", "python"],
+          "options": [
+            "all",
+            "azure",
+            "dotnet",
+            "python"
+          ],
           "default": "all",
           "required": false,
           "inject_into": "instructions"
@@ -142,7 +176,11 @@
         "response_style": {
           "label": "Response style",
           "type": "select",
-          "options": ["concise", "detailed", "step-by-step"],
+          "options": [
+            "concise",
+            "detailed",
+            "step-by-step"
+          ],
           "default": "concise",
           "required": false,
           "inject_into": "instructions"
@@ -156,6 +194,7 @@
       "type": "mcp",
       "category": "knowledge",
       "icon": "github",
+      "source": "builtin",
       "deploy_params": {
         "owner": {
           "label": "Repository Owner",
@@ -174,7 +213,10 @@
         "require_approval": {
           "label": "Require approval for tool calls",
           "type": "select",
-          "options": ["never", "always"],
+          "options": [
+            "never",
+            "always"
+          ],
           "default": "never",
           "required": true
         }
@@ -197,6 +239,7 @@
       "type": "openapi",
       "category": "document-ai",
       "icon": "scan",
+      "source": "builtin",
       "deploy_params": {
         "spec_url": {
           "label": "OpenAPI Spec URL",
@@ -225,7 +268,11 @@
         "auth_type": {
           "label": "Authentication",
           "type": "select",
-          "options": ["anonymous", "project_connection", "managed_identity"],
+          "options": [
+            "anonymous",
+            "project_connection",
+            "managed_identity"
+          ],
           "default": "anonymous",
           "required": true
         },
@@ -234,7 +281,9 @@
           "type": "connection_picker",
           "default": "",
           "required": false,
-          "show_if": {"auth_type": "project_connection"},
+          "show_if": {
+            "auth_type": "project_connection"
+          },
           "description": "Select a connection from your Azure AI Foundry project"
         }
       },
@@ -242,7 +291,13 @@
         "default_model": {
           "label": "Default extraction model",
           "type": "select",
-          "options": ["prebuilt-read", "prebuilt-document", "prebuilt-layout", "prebuilt-invoice", "prebuilt-receipt"],
+          "options": [
+            "prebuilt-read",
+            "prebuilt-document",
+            "prebuilt-layout",
+            "prebuilt-invoice",
+            "prebuilt-receipt"
+          ],
           "default": "prebuilt-document",
           "required": false,
           "inject_into": "instructions"
@@ -250,7 +305,12 @@
         "output_preference": {
           "label": "Output focus",
           "type": "select",
-          "options": ["key-value pairs", "full text", "tables", "all"],
+          "options": [
+            "key-value pairs",
+            "full text",
+            "tables",
+            "all"
+          ],
           "default": "key-value pairs",
           "required": false,
           "inject_into": "instructions"
@@ -264,12 +324,17 @@
       "type": "builtin",
       "category": "compute",
       "icon": "code",
+      "source": "builtin",
       "deploy_params": {},
       "runtime_params": {
         "language_preference": {
           "label": "Preferred coding style",
           "type": "select",
-          "options": ["python3", "pandas-heavy", "minimal"],
+          "options": [
+            "python3",
+            "pandas-heavy",
+            "minimal"
+          ],
           "default": "python3",
           "required": false,
           "inject_into": "instructions"

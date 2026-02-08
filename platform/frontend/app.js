@@ -17,6 +17,7 @@ const ICONS = {
   github: '\uD83D\uDC19',
   code: '\uD83D\uDCBB',
   scan: '\uD83D\uDCC4',
+  wrench: '\uD83D\uDD27',
 };
 
 /* ===== State ===== */
@@ -32,7 +33,13 @@ const state = {
   chatHistory: [],     // [{ role, content, toolCalls }]
   previousResponseId: null,
   filter: 'all',
+  healthResults: {},    // tool_id -> { status, message, details, loading }
+  toolFormMode: null,   // null | 'add' | 'edit'
+  toolFormData: null,   // data for the tool form modal
 };
+
+/* ===== Markdown Config ===== */
+marked.setOptions({ breaks: true });
 
 /* ===== Init ===== */
 (async function init() {
@@ -105,7 +112,10 @@ function renderToolCatalog(el) {
   const filtered = state.filter === 'all' ? state.tools : state.tools.filter(t => t.type === state.filter);
 
   el.innerHTML = `
-    <h2 style="margin-bottom:16px">Select Tools</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2>Select Tools</h2>
+      <button class="btn btn-primary btn-sm" onclick="openToolForm('add')">+ Add Custom Tool</button>
+    </div>
     <div class="filter-bar">
       ${types.map(t => `<button class="chip ${state.filter === t ? 'selected' : ''}"
         onclick="setFilter('${t}')">${t === 'all' ? 'All' : t.toUpperCase()}</button>`).join('')}
@@ -114,14 +124,29 @@ function renderToolCatalog(el) {
       ${filtered.map(t => {
         const sel = state.selected[t.id] ? 'selected' : '';
         const badgeCls = t.type === 'openapi' ? 'badge-api' : t.type === 'mcp' ? 'badge-mcp' : 'badge-builtin';
-        return `<div class="card tool-card ${sel}" onclick="toggleTool('${t.id}')">
-          <div class="tool-check">\u2713</div>
-          <div class="tool-header">
-            <div class="tool-icon">${ICONS[t.icon] || '\uD83D\uDD27'}</div>
-            <h3>${esc(t.name)}</h3>
-            <span class="badge ${badgeCls}">${t.type}</span>
+        const isCustom = t.source === 'custom';
+        const health = state.healthResults[t.id];
+        return `<div class="card tool-card ${sel}">
+          <div class="tool-check" onclick="toggleTool('${t.id}')">\u2713</div>
+          <div class="tool-card-body" onclick="toggleTool('${t.id}')">
+            <div class="tool-header">
+              <div class="tool-icon">${ICONS[t.icon] || '\uD83D\uDD27'}</div>
+              <h3>${esc(t.name)}</h3>
+              <span class="badge ${badgeCls}">${t.type}</span>
+              ${!isCustom ? '<span class="tool-lock" title="Built-in tool">\uD83D\uDD12</span>' : ''}
+            </div>
+            <p>${esc(t.description)}</p>
           </div>
-          <p>${esc(t.description)}</p>
+          <div class="tool-card-footer">
+            <div class="tool-health-area" id="health-${t.id}">
+              ${health ? renderHealthBadge(health) : ''}
+            </div>
+            <div class="tool-card-actions">
+              <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();testTool('${t.id}')" title="Test connectivity">Test</button>
+              ${isCustom ? `<button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();openToolForm('edit','${t.id}')" title="Edit tool">Edit</button>
+              <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();showDeleteToolModal('${t.id}')" title="Delete tool">Del</button>` : ''}
+            </div>
+          </div>
         </div>`;
       }).join('')}
     </div>
@@ -130,6 +155,17 @@ function renderToolCatalog(el) {
       <button class="btn btn-primary" onclick="goToStep(2)"
         ${Object.keys(state.selected).length === 0 ? 'disabled' : ''}>Next: Configure Parameters</button>
     </div>`;
+}
+
+function renderHealthBadge(health) {
+  if (health.loading) {
+    return '<span class="health-badge health-loading"><span class="spinner" style="width:12px;height:12px;border-width:2px"></span> Testing...</span>';
+  }
+  if (health.status === 'healthy') {
+    const time = health.details?.response_time_ms ? ` (${health.details.response_time_ms}ms)` : '';
+    return `<span class="health-badge health-ok" title="${esc(health.message)}">&#10003; Healthy${time}</span>`;
+  }
+  return `<span class="health-badge health-err" title="${esc(health.message)}">&#10007; ${esc(health.message)}</span>`;
 }
 
 function setFilter(f) {
@@ -144,6 +180,292 @@ function toggleTool(id) {
     state.selected[id] = { deploy_params: {}, runtime_params: {} };
   }
   renderStep();
+}
+
+/* ===== Health Check ===== */
+async function testTool(toolId) {
+  state.healthResults[toolId] = { loading: true };
+  const area = document.getElementById(`health-${toolId}`);
+  if (area) area.innerHTML = renderHealthBadge(state.healthResults[toolId]);
+
+  try {
+    const res = await fetch(`${API}/api/tools/${encodeURIComponent(toolId)}/health`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+    state.healthResults[toolId] = await res.json();
+  } catch (err) {
+    state.healthResults[toolId] = { status: 'unhealthy', message: err.message, details: {} };
+  }
+
+  const area2 = document.getElementById(`health-${toolId}`);
+  if (area2) area2.innerHTML = renderHealthBadge(state.healthResults[toolId]);
+}
+
+/* ===== Tool CRUD ===== */
+function openToolForm(mode, toolId) {
+  state.toolFormMode = mode;
+  if (mode === 'edit' && toolId) {
+    const tool = state.tools.find(t => t.id === toolId);
+    state.toolFormData = tool ? { ...tool } : null;
+  } else {
+    state.toolFormData = {
+      id: '', name: '', description: '', type: 'openapi', category: '',
+      icon: 'wrench', deploy_params: {}, runtime_params: {},
+    };
+  }
+  renderToolFormModal();
+}
+
+function renderToolFormModal() {
+  const d = state.toolFormData;
+  if (!d) return;
+  const isEdit = state.toolFormMode === 'edit';
+  const title = isEdit ? 'Edit Tool' : 'Add Custom Tool';
+
+  // For edit mode, deploy_params/runtime_params are the full catalog dicts
+  // For add mode, build a simplified structure
+  let deploySection = '';
+  if (d.type === 'openapi' && !isEdit) {
+    deploySection = `
+      <div class="form-group">
+        <label for="tf-spec-url">OpenAPI Spec URL *</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="tf-spec-url" placeholder="https://api.example.com/openapi.json"
+            value="${esc(d._specUrl || '')}" style="flex:1"
+            onchange="state.toolFormData._specUrl=this.value">
+          <button class="btn btn-secondary btn-sm" type="button" onclick="fetchAndValidateSpec()">Fetch &amp; Validate</button>
+        </div>
+        <div id="tf-spec-result"></div>
+      </div>
+      <div class="form-group">
+        <label for="tf-auth">Authentication</label>
+        <select id="tf-auth" onchange="state.toolFormData._authType=this.value">
+          <option value="anonymous">anonymous</option>
+          <option value="project_connection">project_connection</option>
+          <option value="managed_identity">managed_identity</option>
+        </select>
+      </div>`;
+  } else if (d.type === 'mcp' && !isEdit) {
+    deploySection = `
+      <div class="form-group">
+        <label for="tf-server-url">MCP Server URL *</label>
+        <input type="text" id="tf-server-url" placeholder="https://example.com/api/mcp"
+          value="${esc(d._serverUrl || '')}"
+          onchange="state.toolFormData._serverUrl=this.value">
+        <div class="hint">For GitMCP repos, use: https://gitmcp.io/owner/repo</div>
+      </div>
+      <div class="form-group">
+        <label for="tf-approval">Require approval</label>
+        <select id="tf-approval" onchange="state.toolFormData._approval=this.value">
+          <option value="never">never</option>
+          <option value="always">always</option>
+        </select>
+      </div>`;
+  }
+
+  const modal = document.getElementById('tool-modal-backdrop');
+  modal.innerHTML = `
+    <div class="modal" style="max-width:560px">
+      <h3>${title}</h3>
+      <div class="tool-form">
+        ${!isEdit ? `<div class="form-group">
+          <label>Type *</label>
+          <div class="chip-group">
+            <button type="button" class="chip ${d.type === 'openapi' ? 'selected' : ''}" onclick="setToolFormType('openapi')">OpenAPI</button>
+            <button type="button" class="chip ${d.type === 'mcp' ? 'selected' : ''}" onclick="setToolFormType('mcp')">MCP</button>
+          </div>
+        </div>` : ''}
+        <div class="form-group">
+          <label for="tf-id">ID *</label>
+          <input type="text" id="tf-id" value="${esc(d.id)}" placeholder="my-tool-name"
+            pattern="^[a-z0-9-]+$" maxlength="50" ${isEdit ? 'disabled' : ''}
+            onchange="state.toolFormData.id=this.value">
+          ${!isEdit ? '<div class="hint">Lowercase letters, numbers, and hyphens only</div>' : ''}
+        </div>
+        <div class="form-group">
+          <label for="tf-name">Name *</label>
+          <input type="text" id="tf-name" value="${esc(d.name)}" placeholder="My Tool"
+            maxlength="100" onchange="state.toolFormData.name=this.value">
+        </div>
+        <div class="form-group">
+          <label for="tf-desc">Description *</label>
+          <textarea id="tf-desc" rows="2" placeholder="What does this tool do?"
+            onchange="state.toolFormData.description=this.value">${esc(d.description)}</textarea>
+        </div>
+        <div class="form-group">
+          <label for="tf-category">Category *</label>
+          <input type="text" id="tf-category" value="${esc(d.category)}" placeholder="e.g. utilities, knowledge"
+            onchange="state.toolFormData.category=this.value">
+        </div>
+        <div class="form-group">
+          <label for="tf-icon">Icon</label>
+          <select id="tf-icon" onchange="state.toolFormData.icon=this.value">
+            ${Object.keys(ICONS).map(k => `<option value="${k}" ${d.icon === k ? 'selected' : ''}>${ICONS[k]} ${k}</option>`).join('')}
+          </select>
+        </div>
+        ${deploySection}
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-sm" onclick="closeToolModal()">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="saveToolForm()">${isEdit ? 'Save Changes' : 'Add Tool'}</button>
+      </div>
+    </div>`;
+  modal.style.display = 'flex';
+}
+
+function setToolFormType(type) {
+  if (state.toolFormData) {
+    state.toolFormData.type = type;
+    renderToolFormModal();
+  }
+}
+
+function closeToolModal() {
+  document.getElementById('tool-modal-backdrop').style.display = 'none';
+  state.toolFormMode = null;
+  state.toolFormData = null;
+}
+
+async function fetchAndValidateSpec() {
+  const url = document.getElementById('tf-spec-url')?.value?.trim();
+  const result = document.getElementById('tf-spec-result');
+  if (!url) { result.innerHTML = '<span class="health-badge health-err">Enter a URL first</span>'; return; }
+
+  result.innerHTML = '<span class="health-badge health-loading"><span class="spinner" style="width:12px;height:12px;border-width:2px"></span> Fetching...</span>';
+
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const spec = await res.json();
+    const ver = spec.openapi || 'unknown';
+    const title = spec.info?.title || '';
+    const paths = spec.paths || {};
+    const ops = Object.values(paths).flatMap(p => Object.entries(p)
+      .filter(([m]) => ['get','post','put','patch','delete'].includes(m))
+      .map(([, d]) => d.operationId || 'unnamed'));
+    result.innerHTML = `<span class="health-badge health-ok">&#10003; Valid (${ver}) — ${ops.length} operation(s): ${esc(title)}</span>`;
+    // Store for later
+    state.toolFormData._specUrl = url;
+    state.toolFormData._operations = ops;
+  } catch (err) {
+    result.innerHTML = `<span class="health-badge health-err">&#10007; ${esc(err.message)}</span>`;
+  }
+}
+
+async function saveToolForm() {
+  const d = state.toolFormData;
+  if (!d) return;
+
+  // Read latest values from inputs
+  d.id = document.getElementById('tf-id')?.value?.trim() || d.id;
+  d.name = document.getElementById('tf-name')?.value?.trim() || d.name;
+  d.description = document.getElementById('tf-desc')?.value?.trim() || d.description;
+  d.category = document.getElementById('tf-category')?.value?.trim() || d.category;
+  d.icon = document.getElementById('tf-icon')?.value || d.icon;
+
+  // Validate
+  if (!d.id || !d.name || !d.description || !d.category) {
+    alert('Please fill in all required fields.'); return;
+  }
+  if (!/^[a-z0-9-]+$/.test(d.id)) {
+    alert('ID must contain only lowercase letters, numbers, and hyphens.'); return;
+  }
+
+  // Build deploy_params based on type
+  if (state.toolFormMode === 'add') {
+    if (d.type === 'openapi') {
+      const specUrl = d._specUrl || document.getElementById('tf-spec-url')?.value?.trim() || '';
+      const authType = document.getElementById('tf-auth')?.value || 'anonymous';
+      const ops = d._operations || [];
+      if (!specUrl) { alert('Spec URL is required for OpenAPI tools.'); return; }
+      d.deploy_params = {
+        spec_url: { label: 'OpenAPI Spec URL', type: 'string', default: specUrl, required: true },
+        operations: { label: 'Operations to include', type: 'multi_select', options: ops, default: ops, required: true },
+        auth_type: { label: 'Authentication', type: 'select', options: ['anonymous', 'project_connection', 'managed_identity'], default: authType, required: true },
+        project_connection_id: { label: 'Project Connection', type: 'connection_picker', default: '', required: false, show_if: { auth_type: 'project_connection' } },
+      };
+    } else if (d.type === 'mcp') {
+      const serverUrl = d._serverUrl || document.getElementById('tf-server-url')?.value?.trim() || '';
+      const approval = document.getElementById('tf-approval')?.value || 'never';
+      if (!serverUrl) { alert('Server URL is required for MCP tools.'); return; }
+      d.deploy_params = {
+        server_url: { label: 'MCP Server URL', type: 'string', default: serverUrl, required: true },
+        require_approval: { label: 'Require approval for tool calls', type: 'select', options: ['never', 'always'], default: approval, required: true },
+        allowed_tools: { label: 'Restrict to specific tools (comma-separated, blank = all)', type: 'string', default: '', required: false },
+      };
+    }
+    d.runtime_params = {};
+  }
+
+  // Clean internal fields
+  const payload = { ...d };
+  delete payload._specUrl; delete payload._serverUrl; delete payload._authType;
+  delete payload._approval; delete payload._operations; delete payload.source;
+
+  try {
+    let res;
+    if (state.toolFormMode === 'edit') {
+      const { id, type, ...updates } = payload;
+      res = await fetch(`${API}/api/tools/${encodeURIComponent(d.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+    } else {
+      res = await fetch(`${API}/api/tools`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    closeToolModal();
+    await loadTools();
+    renderStep();
+  } catch (err) {
+    alert(`Failed to save tool: ${err.message}`);
+  }
+}
+
+function showDeleteToolModal(toolId) {
+  const tool = state.tools.find(t => t.id === toolId);
+  const modal = document.getElementById('tool-modal-backdrop');
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>Delete Tool</h3>
+      <p>Are you sure you want to delete <strong>${esc(tool?.name || toolId)}</strong> from the catalog?</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-sm" onclick="closeToolModal()">Cancel</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDeleteTool('${toolId}')">Delete</button>
+      </div>
+    </div>`;
+  modal.style.display = 'flex';
+}
+
+async function confirmDeleteTool(toolId) {
+  try {
+    const res = await fetch(`${API}/api/tools/${encodeURIComponent(toolId)}`, { method: 'DELETE' });
+    if (!res.ok && res.status !== 204) {
+      const err = await res.json();
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+    // Remove from selected if it was selected
+    delete state.selected[toolId];
+    delete state.toolDetails[toolId];
+    delete state.healthResults[toolId];
+    closeToolModal();
+    await loadTools();
+    renderStep();
+  } catch (err) {
+    alert(`Failed to delete tool: ${err.message}`);
+  }
 }
 
 /* ===== Step 2: Tool Parameters ===== */
@@ -454,7 +776,11 @@ function renderChatMessage(msg) {
   if (msg.toolCalls && msg.toolCalls.length > 0) {
     html += `<div style="margin-bottom:6px">${msg.toolCalls.map(t => `<span class="chat-tool-badge">${esc(t)}</span>`).join('')}</div>`;
   }
-  html += esc(msg.content);
+  if (msg.role === 'assistant') {
+    html += DOMPurify.sanitize(marked.parse(msg.content || ''));
+  } else {
+    html += esc(msg.content);
+  }
   html += '</div>';
   return html;
 }

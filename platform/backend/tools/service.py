@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -20,15 +22,20 @@ from exceptions import NotFoundError, ValidationError
 logger = logging.getLogger(__name__)
 
 _catalog: list[dict[str, Any]] = []
+_CATALOG_PATH = Path(__file__).parent / "catalog.json"
+_VALID_TYPES = {"openapi", "mcp", "builtin"}
 
 
 def load_catalog() -> None:
     """Load tool catalog from catalog.json (called once at startup)."""
     global _catalog
-    catalog_path = Path(__file__).parent / "catalog.json"
-    with open(catalog_path, encoding="utf-8") as f:
+    with open(_CATALOG_PATH, encoding="utf-8") as f:
         data = json.load(f)
     _catalog = data["tools"]
+    # Ensure all tools have a source field
+    for t in _catalog:
+        if "source" not in t:
+            t["source"] = "builtin"
     logger.info("Loaded %d tools from catalog", len(_catalog))
 
 
@@ -42,6 +49,7 @@ def list_tools() -> list[dict[str, Any]]:
             "type": t["type"],
             "category": t["category"],
             "icon": t["icon"],
+            "source": t.get("source", "builtin"),
         }
         for t in _catalog
     ]
@@ -300,3 +308,191 @@ def build_runtime_instructions(
         return base_instructions
 
     return base_instructions + "\n\n--- Tool Configuration ---\n" + "\n".join(lines)
+
+
+# ===== Health Checks =====
+
+def check_health(tool_id: str) -> dict[str, Any]:
+    """Check connectivity/validity of a tool. Returns a HealthResult dict."""
+    tool = get_tool(tool_id)
+    tool_type = tool["type"]
+
+    try:
+        if tool_type == "builtin":
+            return {
+                "tool_id": tool_id,
+                "status": "healthy",
+                "message": "Built-in tool is always available",
+                "details": {},
+            }
+        elif tool_type == "openapi":
+            return _check_openapi_health(tool_id, tool)
+        elif tool_type == "mcp":
+            return _check_mcp_health(tool_id, tool)
+        else:
+            return {
+                "tool_id": tool_id,
+                "status": "unhealthy",
+                "message": f"Unknown tool type: {tool_type}",
+                "details": {},
+            }
+    except Exception as exc:
+        return {
+            "tool_id": tool_id,
+            "status": "unhealthy",
+            "message": str(exc),
+            "details": {},
+        }
+
+
+def _check_openapi_health(tool_id: str, tool: dict[str, Any]) -> dict[str, Any]:
+    """Health check for OpenAPI tools — fetch spec and validate."""
+    spec_url = tool.get("deploy_params", {}).get("spec_url", {})
+    url = spec_url.get("default", "") if isinstance(spec_url, dict) else spec_url
+    if not url:
+        return {
+            "tool_id": tool_id,
+            "status": "unhealthy",
+            "message": "No spec_url configured",
+            "details": {},
+        }
+
+    start = time.monotonic()
+    resp = httpx.get(url, timeout=15)
+    elapsed_ms = round((time.monotonic() - start) * 1000)
+    resp.raise_for_status()
+
+    spec = resp.json()
+    openapi_version = spec.get("openapi", "unknown")
+    title = spec.get("info", {}).get("title", "")
+    paths = spec.get("paths", {})
+    operation_count = sum(
+        1
+        for methods in paths.values()
+        for m in methods
+        if m in ("get", "post", "put", "patch", "delete", "options", "head")
+    )
+
+    return {
+        "tool_id": tool_id,
+        "status": "healthy",
+        "message": f"Spec reachable — {operation_count} operation(s)",
+        "details": {
+            "spec_url": url,
+            "openapi_version": openapi_version,
+            "title": title,
+            "operation_count": operation_count,
+            "response_time_ms": elapsed_ms,
+        },
+    }
+
+
+def _check_mcp_health(tool_id: str, tool: dict[str, Any]) -> dict[str, Any]:
+    """Health check for MCP tools — verify server URL is reachable."""
+    deploy = tool.get("deploy_params", {})
+
+    # Build URL: gitmcp uses owner/repo pattern
+    if tool_id == "gitmcp-repo":
+        owner_param = deploy.get("owner", {})
+        repo_param = deploy.get("repo", {})
+        owner = owner_param.get("default", "") if isinstance(owner_param, dict) else owner_param
+        repo = repo_param.get("default", "") if isinstance(repo_param, dict) else repo_param
+        if not owner or not repo:
+            url = "https://gitmcp.io"  # test base URL reachability
+        else:
+            url = f"https://gitmcp.io/{owner}/{repo}"
+    else:
+        server_url_param = deploy.get("server_url", {})
+        url = server_url_param.get("default", "") if isinstance(server_url_param, dict) else server_url_param
+
+    if not url:
+        return {
+            "tool_id": tool_id,
+            "status": "unhealthy",
+            "message": "No server_url configured",
+            "details": {},
+        }
+
+    start = time.monotonic()
+    resp = httpx.get(url, timeout=15, follow_redirects=True)
+    elapsed_ms = round((time.monotonic() - start) * 1000)
+
+    # MCP servers may return various status codes; reachability is the main check
+    return {
+        "tool_id": tool_id,
+        "status": "healthy",
+        "message": f"Server reachable (HTTP {resp.status_code})",
+        "details": {
+            "server_url": url,
+            "status_code": resp.status_code,
+            "response_time_ms": elapsed_ms,
+        },
+    }
+
+
+# ===== CRUD Operations =====
+
+def _save_catalog() -> None:
+    """Persist the catalog to catalog.json atomically."""
+    data = {"tools": _catalog}
+    # Write to temp file in same directory, then rename for atomicity
+    tmp_fd, tmp_path = tempfile.mkstemp(
+        dir=_CATALOG_PATH.parent, suffix=".tmp", prefix="catalog_"
+    )
+    try:
+        with open(tmp_fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+        Path(tmp_path).replace(_CATALOG_PATH)
+    except Exception:
+        # Clean up temp file on failure
+        try:
+            Path(tmp_path).unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise
+
+
+def create_tool(tool_data: dict[str, Any]) -> dict[str, Any]:
+    """Add a new tool to the catalog and persist."""
+    tool_id = tool_data["id"]
+
+    # Validate uniqueness
+    for t in _catalog:
+        if t["id"] == tool_id:
+            raise ValidationError(f"Tool '{tool_id}' already exists")
+
+    # Validate type
+    tool_type = tool_data.get("type", "")
+    if tool_type not in _VALID_TYPES:
+        raise ValidationError(f"Invalid tool type '{tool_type}'. Must be one of: {', '.join(sorted(_VALID_TYPES))}")
+
+    tool_data["source"] = "custom"
+    _catalog.append(tool_data)
+    _save_catalog()
+    logger.info("Created tool '%s'", tool_id)
+    return tool_data
+
+
+def update_tool(tool_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+    """Update an existing tool and persist."""
+    for t in _catalog:
+        if t["id"] == tool_id:
+            for key, value in updates.items():
+                if value is not None:
+                    t[key] = value
+            _save_catalog()
+            logger.info("Updated tool '%s'", tool_id)
+            return t
+    raise NotFoundError(f"Tool '{tool_id}' not found in catalog")
+
+
+def delete_tool(tool_id: str) -> None:
+    """Remove a tool from the catalog and persist."""
+    global _catalog
+    original_len = len(_catalog)
+    _catalog = [t for t in _catalog if t["id"] != tool_id]
+    if len(_catalog) == original_len:
+        raise NotFoundError(f"Tool '{tool_id}' not found in catalog")
+    _save_catalog()
+    logger.info("Deleted tool '%s'", tool_id)
