@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Builder Platform — API Flow Reference</title>
+<style>
+:root {
+  --bg: #ffffff; --surface: #f8f9fa; --surface-2: #f1f3f5;
+  --border: #dee2e6; --text: #212529; --text-secondary: #495057; --text-muted: #868e96;
+  --primary: #6d4ced; --primary-bg: #f0ecfe; --accent: #0d9488;
+  --code-bg: #1e1e2e; --code-text: #cdd6f4; --code-kw: #89b4fa; --code-str: #a6e3a1; --code-num: #fab387;
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--font); background:var(--bg); color:var(--text); font-size:15px; line-height:1.7; }
+.container { max-width:900px; margin:0 auto; padding:40px 24px 80px; }
+
+h1 { font-size:28px; font-weight:700; margin-bottom:8px; letter-spacing:-.5px; }
+h2 { font-size:22px; font-weight:700; margin-top:48px; margin-bottom:16px; padding-bottom:8px; border-bottom:2px solid var(--primary-bg); letter-spacing:-.3px; }
+h3 { font-size:17px; font-weight:700; margin-top:32px; margin-bottom:12px; }
+h4 { font-size:15px; font-weight:600; margin-top:24px; margin-bottom:8px; }
+p { margin-bottom:12px; color:var(--text-secondary); }
+a { color:var(--primary); text-decoration:none; }
+a:hover { text-decoration:underline; }
+hr { border:none; border-top:1px solid var(--border); margin:32px 0; }
+strong { color:var(--text); }
+
+.subtitle { font-size:14px; color:var(--text-muted); margin-bottom:32px; }
+.badge { display:inline-block; font-family:var(--mono); font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
+.badge-get { background:#dcfce7; color:#166534; }
+.badge-post { background:#dbeafe; color:#1e40af; }
+.badge-put { background:#fef3c7; color:#92400e; }
+.badge-delete { background:#fee2e2; color:#991b1b; }
+
+.endpoint-title { font-family:var(--mono); font-size:14px; margin-top:28px; margin-bottom:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.endpoint-title code { background:var(--surface); padding:4px 10px; border-radius:6px; border:1px solid var(--border); font-size:13px; }
+
+/* Code blocks */
+pre { background:var(--code-bg); color:var(--code-text); border-radius:8px; padding:16px 20px; overflow-x:auto; margin:12px 0 16px; font-family:var(--mono); font-size:12.5px; line-height:1.6; }
+code { font-family:var(--mono); font-size:13px; }
+p code, li code, td code { background:var(--surface-2); padding:1px 6px; border-radius:4px; font-size:12.5px; color:var(--primary); border:1px solid var(--border); }
+
+/* Tables */
+table { width:100%; border-collapse:collapse; margin:12px 0 20px; font-size:13.5px; }
+th { background:var(--surface); text-align:left; font-weight:600; padding:10px 14px; border:1px solid var(--border); font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
+td { padding:10px 14px; border:1px solid var(--border); vertical-align:top; }
+td code { font-size:12px; }
+
+/* Flow diagram */
+.flow-box { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px 24px; margin:12px 0; }
+.flow-box h4 { margin:0 0 8px; font-size:14px; color:var(--primary); }
+.flow-box .flow-items { display:flex; flex-direction:column; gap:6px; }
+.flow-item { display:flex; align-items:baseline; gap:8px; font-size:13px; }
+.flow-item .method { font-family:var(--mono); font-size:11px; font-weight:700; padding:1px 6px; border-radius:3px; flex-shrink:0; }
+.flow-item .method.get { background:#dcfce7; color:#166534; }
+.flow-item .method.post { background:#dbeafe; color:#1e40af; }
+.flow-item .method.put { background:#fef3c7; color:#92400e; }
+.flow-item .method.del { background:#fee2e2; color:#991b1b; }
+.flow-item .path { font-family:var(--mono); font-size:12px; color:var(--text); }
+.flow-item .desc { color:var(--text-muted); }
+.flow-arrow { text-align:center; font-size:20px; color:var(--border); margin:4px 0; }
+
+/* Notes */
+.note { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:16px 20px; margin:16px 0; font-size:13.5px; }
+.note strong { color:#92400e; }
+.note-list { list-style:none; padding:0; }
+.note-list li { padding:8px 0; border-bottom:1px solid var(--border); font-size:13.5px; color:var(--text-secondary); }
+.note-list li:last-child { border-bottom:none; }
+.note-list li strong { color:var(--text); }
+
+/* Swagger links */
+.link-cards { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin:16px 0; }
+.link-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; text-align:center; transition:border-color .15s; }
+.link-card:hover { border-color:var(--primary); }
+.link-card .lc-label { font-size:12px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px; font-weight:600; }
+.link-card a { font-family:var(--mono); font-size:13px; font-weight:600; }
+
+/* TOC */
+.toc { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px 24px; margin:24px 0 8px; }
+.toc h3 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin:0 0 12px; }
+.toc ul { list-style:none; padding:0; columns:2; column-gap:24px; }
+.toc li { padding:4px 0; font-size:13.5px; break-inside:avoid; }
+.toc a { color:var(--text-secondary); }
+.toc a:hover { color:var(--primary); }
+
+@media (max-width:640px) {
+  .link-cards { grid-template-columns:1fr; }
+  .toc ul { columns:1; }
+  table { font-size:12px; }
+  th, td { padding:8px 10px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Agent Builder Platform — API Flow Reference</h1>
+<p class="subtitle">Base URL: <code>https://foundryskill-platform.azurewebsites.net</code> &nbsp;|&nbsp; All endpoints prefixed with <code>/api</code></p>
+
+<!-- Swagger Links -->
+<div class="link-cards">
+  <div class="link-card">
+    <div class="lc-label">Swagger UI</div>
+    <a href="https://foundryskill-platform.azurewebsites.net/docs" target="_blank">/docs</a>
+  </div>
+  <div class="link-card">
+    <div class="lc-label">ReDoc</div>
+    <a href="https://foundryskill-platform.azurewebsites.net/redoc" target="_blank">/redoc</a>
+  </div>
+  <div class="link-card">
+    <div class="lc-label">OpenAPI JSON</div>
+    <a href="https://foundryskill-platform.azurewebsites.net/openapi.json" target="_blank">/openapi.json</a>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h3>Contents</h3>
+  <ul>
+    <li><a href="#flow">Application Flow</a></li>
+    <li><a href="#tools-list">GET /api/tools</a></li>
+    <li><a href="#tools-detail">GET /api/tools/{id}</a></li>
+    <li><a href="#tools-health">GET /api/tools/{id}/health</a></li>
+    <li><a href="#tools-create">POST /api/tools</a></li>
+    <li><a href="#tools-update">PUT /api/tools/{id}</a></li>
+    <li><a href="#tools-delete">DELETE /api/tools/{id}</a></li>
+    <li><a href="#agents-list">GET /api/agents</a></li>
+    <li><a href="#agents-detail">GET /api/agents/{name}</a></li>
+    <li><a href="#agents-deploy">POST /api/agents</a></li>
+    <li><a href="#agents-delete">DELETE /api/agents/{name}</a></li>
+    <li><a href="#chat">POST /api/chat</a></li>
+    <li><a href="#errors">Error Format</a></li>
+    <li><a href="#notes">Frontend Notes</a></li>
+  </ul>
+</div>
+
+<!-- ═══ APPLICATION FLOW ═══ -->
+<h2 id="flow">Application Flow</h2>
+<p>The platform has two pages: <strong>Agent List</strong> (<code>/index.html</code>) and the <strong>Builder Wizard</strong> (<code>/builder.html</code>) with a 5-step flow. Chat-only shortcut: <code>/builder.html?agent={agent_name}</code>.</p>
+
+<div class="flow-box">
+  <h4>Agent List Page <code>/index.html</code></h4>
+  <div class="flow-items">
+    <div class="flow-item"><span class="method get">GET</span><span class="path">/api/agents</span><span class="desc">— Load grid of deployed agents</span></div>
+    <div class="flow-item" style="color:var(--text-muted);font-size:12px;padding-left:60px">Click card → <code>/builder.html?agent={name}</code> &nbsp;|&nbsp; "+ Create New Agent" → <code>/builder.html</code></div>
+  </div>
+</div>
+<div class="flow-arrow">&#9660;</div>
+
+<div class="flow-box">
+  <h4>Step 1: Select Tools</h4>
+  <div class="flow-items">
+    <div class="flow-item"><span class="method get">GET</span><span class="path">/api/tools</span><span class="desc">— Load tool catalog</span></div>
+    <div class="flow-item"><span class="method get">GET</span><span class="path">/api/tools/{id}/health</span><span class="desc">— "Test" button</span></div>
+    <div class="flow-item"><span class="method post">POST</span><span class="path">/api/tools</span><span class="desc">— "+ Add Custom Tool"</span></div>
+    <div class="flow-item"><span class="method put">PUT</span><span class="path">/api/tools/{id}</span><span class="desc">— "Edit" button</span></div>
+    <div class="flow-item"><span class="method del">DEL</span><span class="path">/api/tools/{id}</span><span class="desc">— "Del" button</span></div>
+  </div>
+</div>
+<div class="flow-arrow">&#9660;</div>
+
+<div class="flow-box">
+  <h4>Step 2: Configure Parameters</h4>
+  <div class="flow-items">
+    <div class="flow-item"><span class="method get">GET</span><span class="path">/api/tools/{id}</span><span class="desc">— Fetch full tool detail (deploy_params, runtime_params with UI metadata)</span></div>
+    <div class="flow-item" style="color:var(--text-muted);font-size:12px;padding-left:60px">User fills in parameter values → stored in frontend state (no API calls)</div>
+  </div>
+</div>
+<div class="flow-arrow">&#9660;</div>
+
+<div class="flow-box">
+  <h4>Step 3: Agent Config</h4>
+  <div class="flow-items">
+    <div class="flow-item" style="color:var(--text-muted);font-size:12px">No API calls — user enters agent name, model, and instructions. Shows summary.</div>
+  </div>
+</div>
+<div class="flow-arrow">&#9660;</div>
+
+<div class="flow-box">
+  <h4>Step 4: Deploy</h4>
+  <div class="flow-items">
+    <div class="flow-item"><span class="method post">POST</span><span class="path">/api/agents</span><span class="desc">— Deploy agent to Azure AI Foundry (spinner while deploying)</span></div>
+    <div class="flow-item" style="color:var(--text-muted);font-size:12px;padding-left:60px">On success → auto-advance to Step 5 &nbsp;|&nbsp; On failure → show error</div>
+  </div>
+</div>
+<div class="flow-arrow">&#9660;</div>
+
+<div class="flow-box">
+  <h4>Step 5: Chat</h4>
+  <div class="flow-items">
+    <div class="flow-item"><span class="method post">POST</span><span class="path">/api/chat</span><span class="desc">— Send message, get response (with conversation threading)</span></div>
+    <div class="flow-item"><span class="method get">GET</span><span class="path">/api/agents/{name}</span><span class="desc">— Fetch agent details (chat-only mode)</span></div>
+    <div class="flow-item"><span class="method del">DEL</span><span class="path">/api/agents/{name}</span><span class="desc">— "Delete Agent" button</span></div>
+  </div>
+</div>
+
+<!-- ═══ TOOLS ═══ -->
+<h2>API Endpoints — Tools</h2>
+
+<div class="endpoint-title" id="tools-list">
+  <span class="badge badge-get">GET</span>
+  <code>/api/tools</code>
+  <span>— List all tools</span>
+</div>
+<p>Returns the tool catalog (built-in + custom tools).</p>
+<p><strong>Response:</strong> <code>200 OK</code></p>
+<pre>[
+  {
+    "id": "mock-weather",
+    "name": "Weather API",
+    "description": "Get current weather for any city",
+    "type": "openapi",
+    "category": "utilities",
+    "icon": "cloud",
+    "source": "builtin"
+  }
+]</pre>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Values</th></tr>
+  <tr><td><code>id</code></td><td>string</td><td>URL-safe identifier</td></tr>
+  <tr><td><code>name</code></td><td>string</td><td>Display name</td></tr>
+  <tr><td><code>description</code></td><td>string</td><td>Short description</td></tr>
+  <tr><td><code>type</code></td><td>string</td><td><code>"openapi"</code> | <code>"mcp"</code> | <code>"builtin"</code></td></tr>
+  <tr><td><code>category</code></td><td>string</td><td>Grouping (e.g. <code>"utilities"</code>, <code>"knowledge"</code>, <code>"compute"</code>)</td></tr>
+  <tr><td><code>icon</code></td><td>string</td><td>Icon key: <code>cloud</code>, <code>dollar</code>, <code>book</code>, <code>github</code>, <code>code</code>, <code>scan</code>, <code>wrench</code></td></tr>
+  <tr><td><code>source</code></td><td>string</td><td><code>"builtin"</code> (read-only) | <code>"custom"</code> (editable/deletable)</td></tr>
+</table>
+
+<hr>
+
+<div class="endpoint-title" id="tools-detail">
+  <span class="badge badge-get">GET</span>
+  <code>/api/tools/{tool_id}</code>
+  <span>— Get tool details</span>
+</div>
+<p>Returns full tool config including parameter definitions used to render the configuration form in Step 2.</p>
+<p><strong>Response:</strong> <code>200 OK</code></p>
+<pre>{
+  "id": "mock-weather",
+  "name": "Weather API",
+  "type": "openapi",
+  ...
+  "deploy_params": {
+    "spec_url": {
+      "label": "OpenAPI Spec URL",
+      "type": "string",
+      "default": "https://foundryskill-mock-apis.azurewebsites.net/openapi.json",
+      "required": true
+    },
+    "operations": {
+      "label": "Operations to include",
+      "type": "multi_select",
+      "options": ["getWeather"],
+      "default": ["getWeather"],
+      "required": true
+    },
+    "auth_type": {
+      "label": "Authentication",
+      "type": "select",
+      "options": ["anonymous", "project_connection", "managed_identity"],
+      "default": "anonymous",
+      "required": true
+    },
+    "project_connection_id": {
+      "label": "Project Connection",
+      "type": "connection_picker",
+      "default": "",
+      "required": false,
+      "show_if": { "auth_type": "project_connection" },
+      "description": "Select a connection from your Azure AI Foundry project"
+    }
+  },
+  "runtime_params": {
+    "default_units": {
+      "label": "Temperature units",
+      "type": "select",
+      "options": ["fahrenheit", "celsius"],
+      "default": "fahrenheit",
+      "required": false,
+      "inject_into": "instructions"
+    },
+    "default_location": {
+      "label": "Default city (if user doesn't specify)",
+      "type": "string",
+      "default": "",
+      "required": false,
+      "placeholder": "e.g. Seattle",
+      "inject_into": "instructions"
+    }
+  }
+}</pre>
+
+<h4>Parameter field metadata (for rendering forms)</h4>
+<table>
+  <tr><th>Meta field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>label</code></td><td>string</td><td>Human-readable label for the form field</td></tr>
+  <tr><td><code>type</code></td><td>string</td><td><code>"string"</code> | <code>"select"</code> | <code>"multi_select"</code> | <code>"password"</code> | <code>"connection_picker"</code></td></tr>
+  <tr><td><code>default</code></td><td>any</td><td>Default value (string, array, or empty)</td></tr>
+  <tr><td><code>required</code></td><td>boolean</td><td>Whether the field is mandatory</td></tr>
+  <tr><td><code>options</code></td><td>string[]</td><td>Available choices (for <code>select</code> / <code>multi_select</code>)</td></tr>
+  <tr><td><code>placeholder</code></td><td>string</td><td>Input placeholder text</td></tr>
+  <tr><td><code>description</code></td><td>string</td><td>Help text below the field</td></tr>
+  <tr><td><code>show_if</code></td><td>object</td><td>Conditional visibility: <code>{ "other_field_key": "required_value" }</code></td></tr>
+  <tr><td><code>inject_into</code></td><td>string</td><td>Where value is used at deploy time (e.g. <code>"instructions"</code>)</td></tr>
+</table>
+<p><strong>Error:</strong> <code>404</code> if tool not found</p>
+
+<hr>
+
+<div class="endpoint-title" id="tools-health">
+  <span class="badge badge-get">GET</span>
+  <code>/api/tools/{tool_id}/health</code>
+  <span>— Check tool health</span>
+</div>
+<p>Tests connectivity/validity of a tool's external service.</p>
+<p><strong>Response:</strong> <code>200 OK</code></p>
+<pre>{
+  "tool_id": "mock-weather",
+  "status": "healthy",
+  "message": "Valid OpenAPI 3.0.2 spec with 4 operations",
+  "details": {
+    "spec_version": "3.0.2",
+    "title": "Mock APIs",
+    "operation_count": 4,
+    "response_time_ms": 340
+  }
+}</pre>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>tool_id</code></td><td>string</td><td>Tool ID that was checked</td></tr>
+  <tr><td><code>status</code></td><td>string</td><td><code>"healthy"</code> or <code>"unhealthy"</code></td></tr>
+  <tr><td><code>message</code></td><td>string</td><td>Human-readable status message</td></tr>
+  <tr><td><code>details</code></td><td>object</td><td>Extra info (varies by type — may include <code>response_time_ms</code>, <code>spec_version</code>, <code>server_url</code>)</td></tr>
+</table>
+
+<div class="note">
+  <strong>Health check logic by tool type:</strong><br>
+  <strong>openapi</strong> → Fetches the <code>spec_url</code>, validates it's valid JSON with <code>openapi</code> field<br>
+  <strong>mcp</strong> → HTTP GET to <code>server_url</code>, accepts any 2xx/3xx/405 as healthy<br>
+  <strong>builtin</strong> → Always returns healthy
+</div>
+
+<hr>
+
+<div class="endpoint-title" id="tools-create">
+  <span class="badge badge-post">POST</span>
+  <code>/api/tools</code>
+  <span>— Create a custom tool</span>
+</div>
+<p>Adds a new tool to the catalog.</p>
+<p><strong>Request:</strong></p>
+<pre>{
+  "id": "my-custom-api",
+  "name": "My Custom API",
+  "description": "Does something useful",
+  "type": "openapi",
+  "category": "utilities",
+  "icon": "wrench",
+  "deploy_params": {
+    "spec_url": {
+      "label": "OpenAPI Spec URL",
+      "type": "string",
+      "default": "https://api.example.com/openapi.json",
+      "required": true
+    }
+  },
+  "runtime_params": {}
+}</pre>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Required</th><th>Validation</th></tr>
+  <tr><td><code>id</code></td><td>string</td><td>yes</td><td><code>^[a-z0-9-]+$</code>, 1–50 chars, must be unique</td></tr>
+  <tr><td><code>name</code></td><td>string</td><td>yes</td><td>1–100 chars</td></tr>
+  <tr><td><code>description</code></td><td>string</td><td>yes</td><td>non-empty</td></tr>
+  <tr><td><code>type</code></td><td>string</td><td>yes</td><td><code>"openapi"</code> | <code>"mcp"</code> | <code>"builtin"</code></td></tr>
+  <tr><td><code>category</code></td><td>string</td><td>yes</td><td>non-empty</td></tr>
+  <tr><td><code>icon</code></td><td>string</td><td>no</td><td>default: <code>"wrench"</code></td></tr>
+  <tr><td><code>deploy_params</code></td><td>object</td><td>no</td><td>default: <code>{}</code></td></tr>
+  <tr><td><code>runtime_params</code></td><td>object</td><td>no</td><td>default: <code>{}</code></td></tr>
+</table>
+<p><strong>Response:</strong> <code>201 Created</code> — returns full <code>ToolDetail</code></p>
+<p><strong>Errors:</strong> <code>422</code> — Validation error (missing fields, invalid ID, duplicate ID)</p>
+
+<hr>
+
+<div class="endpoint-title" id="tools-update">
+  <span class="badge badge-put">PUT</span>
+  <code>/api/tools/{tool_id}</code>
+  <span>— Update a custom tool</span>
+</div>
+<p>Partially updates a tool. Only custom tools can be updated.</p>
+<p><strong>Request:</strong> (all fields optional, only send what changed)</p>
+<pre>{
+  "name": "Updated Name",
+  "description": "Updated description",
+  "category": "new-category",
+  "icon": "cloud",
+  "deploy_params": { ... },
+  "runtime_params": { ... }
+}</pre>
+<p><strong>Response:</strong> <code>200 OK</code> — returns updated <code>ToolDetail</code></p>
+<p><strong>Errors:</strong> <code>404</code> — Tool not found &nbsp;|&nbsp; <code>422</code> — Cannot update builtin tool</p>
+
+<hr>
+
+<div class="endpoint-title" id="tools-delete">
+  <span class="badge badge-delete">DELETE</span>
+  <code>/api/tools/{tool_id}</code>
+  <span>— Delete a custom tool</span>
+</div>
+<p>Removes a custom tool from the catalog. Built-in tools cannot be deleted.</p>
+<p><strong>Response:</strong> <code>204 No Content</code> (empty body)</p>
+<p><strong>Errors:</strong> <code>404</code> — Tool not found &nbsp;|&nbsp; <code>422</code> — Cannot delete builtin tool</p>
+
+<!-- ═══ AGENTS ═══ -->
+<h2>API Endpoints — Agents</h2>
+
+<div class="endpoint-title" id="agents-list">
+  <span class="badge badge-get">GET</span>
+  <code>/api/agents</code>
+  <span>— List deployed agents</span>
+</div>
+<p>Returns all agents deployed to Azure AI Foundry.</p>
+<p><strong>Response:</strong> <code>200 OK</code></p>
+<pre>[
+  {
+    "name": "my-weather-bot",
+    "id": "asst_abc123def456",
+    "version": 3,
+    "description": "Agent with Weather API, Code Interpreter"
+  }
+]</pre>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>name</code></td><td>string</td><td>Agent name (unique identifier in Foundry)</td></tr>
+  <tr><td><code>id</code></td><td>string</td><td>Azure resource ID</td></tr>
+  <tr><td><code>version</code></td><td>integer</td><td>Latest version number</td></tr>
+  <tr><td><code>description</code></td><td>string | null</td><td>Auto-generated description listing tools</td></tr>
+</table>
+
+<hr>
+
+<div class="endpoint-title" id="agents-detail">
+  <span class="badge badge-get">GET</span>
+  <code>/api/agents/{agent_name}</code>
+  <span>— Get agent details</span>
+</div>
+<p><strong>Response:</strong> <code>200 OK</code> — same shape as list item above</p>
+<p><strong>Error:</strong> <code>404</code> if agent not found</p>
+
+<hr>
+
+<div class="endpoint-title" id="agents-deploy">
+  <span class="badge badge-post">POST</span>
+  <code>/api/agents</code>
+  <span>— Deploy agent</span>
+</div>
+<p>Creates (or updates) an agent in Azure AI Foundry. If an agent with the same name exists, a new version is created.</p>
+<p><strong>Request:</strong></p>
+<pre>{
+  "name": "my-weather-bot",
+  "model": "gpt-4.1",
+  "instructions": "You are a helpful weather assistant...",
+  "tools": [
+    {
+      "tool_id": "mock-weather",
+      "deploy_params": {
+        "spec_url": "https://foundryskill-mock-apis.azurewebsites.net/openapi.json",
+        "operations": ["getWeather"],
+        "auth_type": "anonymous"
+      },
+      "runtime_params": {
+        "default_units": "celsius",
+        "default_location": "Seattle"
+      }
+    },
+    {
+      "tool_id": "code-interpreter",
+      "deploy_params": {},
+      "runtime_params": {}
+    }
+  ]
+}</pre>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  <tr><td><code>name</code></td><td>string</td><td>yes</td><td>Agent name (1–100 chars)</td></tr>
+  <tr><td><code>model</code></td><td>string</td><td>no</td><td>Model deployment name (default: <code>"gpt-4.1"</code>)</td></tr>
+  <tr><td><code>instructions</code></td><td>string</td><td>yes</td><td>System prompt for the agent</td></tr>
+  <tr><td><code>tools</code></td><td>ToolSelection[]</td><td>yes</td><td>Array of tool selections with configured params</td></tr>
+</table>
+
+<h4>ToolSelection</h4>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  <tr><td><code>tool_id</code></td><td>string</td><td>yes</td><td>Tool ID from the catalog</td></tr>
+  <tr><td><code>deploy_params</code></td><td>object</td><td>no</td><td>Flat key-value map of deploy parameter <strong>values</strong></td></tr>
+  <tr><td><code>runtime_params</code></td><td>object</td><td>no</td><td>Flat key-value map of runtime parameter <strong>values</strong></td></tr>
+</table>
+
+<div class="note">
+  <strong>Note:</strong> <code>deploy_params</code> here contains <strong>resolved values</strong> (e.g. <code>"spec_url": "https://..."</code>), not the metadata objects from the tool detail endpoint.
+</div>
+
+<p><strong>Response:</strong> <code>201 Created</code></p>
+<pre>{
+  "name": "my-weather-bot",
+  "id": "asst_abc123def456",
+  "version": 1,
+  "description": "Agent with Weather API, Code Interpreter"
+}</pre>
+<p><strong>Errors:</strong> <code>422</code> — Validation error &nbsp;|&nbsp; <code>502</code> — Azure service error</p>
+
+<hr>
+
+<div class="endpoint-title" id="agents-delete">
+  <span class="badge badge-delete">DELETE</span>
+  <code>/api/agents/{agent_name}</code>
+  <span>— Delete agent</span>
+</div>
+<p>Deletes all versions of the agent from Azure AI Foundry.</p>
+<p><strong>Response:</strong> <code>204 No Content</code></p>
+<p><strong>Errors:</strong> <code>404</code> — Agent not found &nbsp;|&nbsp; <code>502</code> — Azure service error</p>
+
+<!-- ═══ CHAT ═══ -->
+<h2>API Endpoints — Chat</h2>
+
+<div class="endpoint-title" id="chat">
+  <span class="badge badge-post">POST</span>
+  <code>/api/chat</code>
+  <span>— Send a message</span>
+</div>
+<p>Sends a message to a deployed agent and returns the response.</p>
+<p><strong>Request:</strong></p>
+<pre>{
+  "agent_name": "my-weather-bot",
+  "message": "What's the weather in Seattle?",
+  "previous_response_id": null
+}</pre>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  <tr><td><code>agent_name</code></td><td>string</td><td>yes</td><td>Name of the deployed agent</td></tr>
+  <tr><td><code>message</code></td><td>string</td><td>yes</td><td>User's message text</td></tr>
+  <tr><td><code>previous_response_id</code></td><td>string | null</td><td>no</td><td>Response ID from last turn (for multi-turn). <code>null</code> for first message.</td></tr>
+</table>
+
+<p><strong>Response:</strong> <code>200 OK</code></p>
+<pre>{
+  "text": "The current weather in Seattle is 58°F with partly cloudy skies.",
+  "response_id": "resp_abc123",
+  "tool_calls": ["getWeather"]
+}</pre>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>text</code></td><td>string</td><td>Assistant's response (may contain <strong>Markdown</strong>)</td></tr>
+  <tr><td><code>response_id</code></td><td>string</td><td>Pass as <code>previous_response_id</code> in next turn</td></tr>
+  <tr><td><code>tool_calls</code></td><td>string[]</td><td>Names of tools the agent invoked (empty if none)</td></tr>
+</table>
+
+<div class="note">
+  <strong>Conversation threading:</strong> Pass the <code>response_id</code> from each response as <code>previous_response_id</code> in the next request to maintain context. Omit or send <code>null</code> to start a new conversation.
+</div>
+
+<p><strong>Errors:</strong> <code>404</code> — Agent not found &nbsp;|&nbsp; <code>502</code> — Azure service error</p>
+
+<!-- ═══ ERROR FORMAT ═══ -->
+<h2 id="errors">Error Response Format</h2>
+<p>All errors follow this shape:</p>
+<pre>{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error message"
+  }
+}</pre>
+<table>
+  <tr><th>HTTP Status</th><th>Code</th><th>When</th></tr>
+  <tr><td><code>404</code></td><td><code>NOT_FOUND</code></td><td>Resource doesn't exist</td></tr>
+  <tr><td><code>422</code></td><td><code>VALIDATION_ERROR</code></td><td>Invalid input</td></tr>
+  <tr><td><code>502</code></td><td><code>AZURE_SERVICE_ERROR</code></td><td>Azure AI Foundry API failure</td></tr>
+  <tr><td><code>500</code></td><td><code>INTERNAL_ERROR</code></td><td>Unexpected server error</td></tr>
+</table>
+
+<!-- ═══ CORS ═══ -->
+<h2>CORS</h2>
+<p>The API allows requests from <code>http://localhost:3000</code> (and other origins listed in config). If your React dev server runs on a different port, the backend <code>CORS_ORIGINS</code> setting will need updating.</p>
+
+<!-- ═══ NOTES ═══ -->
+<h2 id="notes">Notes for Frontend Development</h2>
+<ol class="note-list">
+  <li><strong>Markdown in chat responses</strong> — <code>text</code> in chat responses may contain Markdown (headers, code blocks, lists, tables, bold, links). Render it with a Markdown library and sanitize for XSS.</li>
+  <li><strong>Tool parameter forms are data-driven</strong> — The <code>deploy_params</code> and <code>runtime_params</code> in tool details contain UI metadata (<code>type</code>, <code>label</code>, <code>options</code>, <code>show_if</code>, etc.) that define how to render each form field. The frontend should dynamically generate forms from this metadata.</li>
+  <li><strong>Conditional field visibility</strong> — Some fields have <code>show_if: { "other_key": "value" }</code>. Only show these fields when the referenced field matches the specified value.</li>
+  <li><strong>Builtin vs custom tools</strong> — Tools with <code>source: "builtin"</code> are read-only (no edit/delete). Tools with <code>source: "custom"</code> support full CRUD.</li>
+  <li><strong>Deploy params: metadata vs values</strong> — <code>GET /api/tools/{id}</code> returns parameter <strong>metadata</strong> (label, type, options, defaults). <code>POST /api/agents</code> expects parameter <strong>values</strong> (flat key-value pairs). The frontend maps defaults + user overrides into the flat value format at deploy time.</li>
+  <li><strong>Agent versioning</strong> — Deploying an agent with an existing name creates a new version (doesn't fail). The response contains the new version number.</li>
+  <li><strong>Chat-only mode</strong> — Navigate to <code>/builder.html?agent={name}</code> to skip the wizard and go straight to chatting with an existing agent.</li>
+</ol>
+
+</div>
+</body>
+</html>
