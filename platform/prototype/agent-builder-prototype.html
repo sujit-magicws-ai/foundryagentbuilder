@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Builder Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+<style>
+/* ═══ Design Tokens ═══ */
+:root, [data-theme="dark"] {
+  --bg: #09090b; --surface: #111113; --surface-2: #18181b; --surface-3: #222225; --surface-hover: #2a2a2e;
+  --border: #27272a; --border-light: #3f3f46;
+  --text: #fafafa; --text-secondary: #a1a1aa; --text-muted: #63637a;
+  --primary: #7c5cfc; --primary-hover: #9580ff; --primary-bg: rgba(124,92,252,.08); --primary-border: rgba(124,92,252,.25);
+  --accent: #2dd4a8; --accent-bg: rgba(45,212,168,.08); --accent-border: rgba(45,212,168,.3);
+  --warning: #eab308; --warning-bg: rgba(234,179,8,.08); --warning-border: rgba(234,179,8,.3);
+  --danger: #ef4444; --danger-bg: rgba(239,68,68,.08); --danger-border: rgba(239,68,68,.3);
+  --openapi-color: #38bdf8; --openapi-bg: rgba(56,189,248,.08);
+  --mcp-color: #c084fc; --mcp-bg: rgba(192,132,252,.08);
+  --builtin-color: #a1a1aa; --builtin-bg: rgba(161,161,170,.06);
+  --radius: 8px; --radius-lg: 12px;
+  --font: 'Inter', system-ui, sans-serif; --mono: 'JetBrains Mono', monospace;
+  --shadow: 0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,.5);
+}
+[data-theme="light"] {
+  --bg: #f4f4f5; --surface: #ffffff; --surface-2: #f0f0f2; --surface-3: #e4e4e7; --surface-hover: #dadadf;
+  --border: #d4d4d8; --border-light: #a1a1aa;
+  --text: #18181b; --text-secondary: #52525b; --text-muted: #71717a;
+  --primary: #6d4ced; --primary-hover: #5b38d6; --primary-bg: rgba(109,76,237,.07); --primary-border: rgba(109,76,237,.25);
+  --accent: #0d9488; --accent-bg: rgba(13,148,136,.07); --accent-border: rgba(13,148,136,.25);
+  --warning: #ca8a04; --warning-bg: rgba(202,138,4,.07); --warning-border: rgba(202,138,4,.25);
+  --danger: #dc2626; --danger-bg: rgba(220,38,38,.07); --danger-border: rgba(220,38,38,.25);
+  --openapi-color: #0284c7; --openapi-bg: rgba(2,132,199,.07);
+  --mcp-color: #9333ea; --mcp-bg: rgba(147,51,234,.07);
+  --builtin-color: #71717a; --builtin-bg: rgba(113,113,122,.06);
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,.1);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--font); background:var(--bg); color:var(--text); font-size:14px; height:100vh; overflow:hidden; }
+::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-thumb { background:var(--border-light); border-radius:4px; } ::-webkit-scrollbar-track { background:transparent; }
+
+/* ═══ Top Navigation ═══ */
+.topnav { height:56px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; flex-wrap:nowrap; align-items:center; padding:0 24px; gap:8px; z-index:100; overflow:hidden; }
+.topnav-brand { font-weight:800; font-size:15px; letter-spacing:-.3px; margin-right:24px; cursor:pointer; }
+.topnav-brand span { color:var(--primary); }
+.topnav-link { padding:8px 16px; border-radius:var(--radius); font-size:13px; font-weight:500; color:var(--text-secondary); cursor:pointer; transition:all .15s; border:1px solid transparent; }
+.topnav-link:hover { color:var(--text); background:var(--surface-2); }
+.topnav-link.active { color:var(--text); background:var(--surface-2); border-color:var(--border); }
+.topnav-link.disabled { opacity:.35; cursor:not-allowed; pointer-events:none; }
+.topnav-spacer { flex:1; }
+.step-pills { display:flex; flex-wrap:nowrap; gap:4px; align-items:center; flex-shrink:0; white-space:nowrap; }
+.step-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:500; color:var(--text-muted); cursor:default; transition:all .2s; flex-shrink:0; }
+.step-pill.active { background:var(--primary-bg); color:var(--primary); border:1px solid var(--primary-border); }
+.step-pill.done { color:var(--accent); }
+.step-pill .pill-num { width:20px; height:20px; border-radius:50%; background:var(--surface-3); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; }
+.step-pill.active .pill-num { background:var(--primary); color:var(--bg); }
+.step-pill.done .pill-num { background:var(--accent); color:var(--bg); }
+.step-connector { width:20px; height:1px; background:var(--border); flex-shrink:0; }
+
+/* ═══ Page View ═══ */
+.page-view { height:calc(100vh - 56px); overflow-y:auto; padding:40px; }
+.page-content { max-width:960px; margin:0 auto; }
+
+/* ═══ Home Page ═══ */
+.hero { text-align:center; padding:60px 20px 48px; }
+.hero h1 { font-size:32px; font-weight:800; letter-spacing:-.8px; margin-bottom:12px; }
+.hero h1 span { color:var(--primary); }
+.hero p { color:var(--text-secondary); font-size:16px; max-width:520px; margin:0 auto; line-height:1.6; }
+.home-flow { display:flex; align-items:center; justify-content:center; gap:16px; margin:48px 0; flex-wrap:wrap; }
+.home-flow-arrow { color:var(--border-light); font-size:24px; }
+.home-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:36px 28px; text-align:center; min-width:240px; flex:1; max-width:300px; cursor:pointer; transition:all .2s; position:relative; }
+.home-card:hover { border-color:var(--border-light); transform:translateY(-3px); box-shadow:var(--shadow-lg); }
+.home-card.disabled { opacity:.4; cursor:not-allowed; }
+.home-card.disabled:hover { transform:none; box-shadow:none; border-color:var(--border); }
+.home-card-num { font-size:48px; font-weight:200; line-height:1; margin-bottom:12px; }
+.home-card-num.skills { color:var(--openapi-color); }
+.home-card-num.agents { color:var(--accent); }
+.home-card-num.roles { color:var(--primary); }
+.home-card h3 { font-size:18px; font-weight:700; margin-bottom:8px; }
+.home-card p { font-size:13px; color:var(--text-muted); line-height:1.5; }
+.home-card .coming-soon { position:absolute; top:12px; right:12px; font-family:var(--mono); font-size:9px; padding:3px 8px; border-radius:4px; background:var(--warning-bg); color:var(--warning); border:1px solid var(--warning-border); }
+.home-cards-bottom { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:48px; }
+.home-info-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px; }
+.home-info-card .ic { font-size:28px; margin-bottom:12px; display:block; }
+.home-info-card h4 { font-size:15px; font-weight:700; margin-bottom:8px; }
+.home-info-card p { font-size:13px; color:var(--text-secondary); line-height:1.6; }
+
+/* ═══ Skills Page ═══ */
+.skills-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; }
+.skills-header h2 { font-size:24px; font-weight:700; letter-spacing:-.5px; }
+.skills-group-label { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin:28px 0 14px; display:flex; align-items:center; gap:10px; }
+.skills-group-label::after { content:''; flex:1; height:1px; background:var(--border); }
+.skills-group-label:first-of-type { margin-top:0; }
+.skill-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; display:flex; align-items:flex-start; gap:14px; transition:all .15s; margin-bottom:10px; }
+.skill-card:hover { border-color:var(--border-light); }
+.skill-card .sk-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.skill-card .sk-icon.openapi { background:var(--openapi-bg); }
+.skill-card .sk-icon.mcp { background:var(--mcp-bg); }
+.skill-card .sk-icon.builtin { background:var(--builtin-bg); }
+.skill-card .sk-info { flex:1; }
+.skill-card .sk-name { font-weight:700; font-size:14px; margin-bottom:2px; display:flex; align-items:center; gap:8px; }
+.skill-card .sk-desc { font-size:13px; color:var(--text-secondary); line-height:1.4; }
+.skill-card .sk-actions { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+.skill-card .sk-badge { font-family:var(--mono); font-size:9px; padding:3px 8px; border-radius:4px; }
+.sk-badge.openapi { background:var(--openapi-bg); color:var(--openapi-color); }
+.sk-badge.mcp { background:var(--mcp-bg); color:var(--mcp-color); }
+.sk-badge.builtin { background:var(--builtin-bg); color:var(--builtin-color); }
+.sk-lock { font-size:11px; color:var(--text-muted); }
+.sk-params { font-family:var(--mono); font-size:11px; color:var(--text-muted); margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:420px; }
+.param-key { color:var(--text-secondary); }
+.health-inline { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:500; padding:3px 10px; border-radius:10px; }
+.health-inline.ok { color:var(--accent); background:var(--accent-bg); }
+.health-inline.err { color:var(--danger); background:var(--danger-bg); }
+.health-inline.loading { color:var(--text-muted); }
+
+/* ═══ Agent List ═══ */
+.agent-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; }
+.agent-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; cursor:pointer; transition:all .15s; }
+.agent-card:hover { border-color:var(--border-light); transform:translateY(-2px); box-shadow:var(--shadow-lg); }
+.agent-card h3 { font-size:16px; font-weight:700; margin-bottom:4px; }
+.agent-card .meta { font-family:var(--mono); font-size:11px; color:var(--text-muted); margin-bottom:12px; }
+.agent-card .desc { font-size:13px; color:var(--text-secondary); line-height:1.5; }
+.empty-state { text-align:center; padding:80px 20px; color:var(--text-muted); }
+.empty-state h3 { font-size:18px; color:var(--text-secondary); margin-bottom:8px; }
+.empty-state p { font-size:14px; margin-bottom:20px; }
+
+/* ═══ Builder 3-Panel (Step 1) ═══ */
+.builder-3panel { display:grid; grid-template-columns:280px 1fr 340px; height:calc(100vh - 56px); }
+.panel { display:flex; flex-direction:column; overflow:hidden; background:var(--surface); }
+.panel-left { border-right:1px solid var(--border); }
+.panel-right { border-left:1px solid var(--border); }
+.panel-center { background:var(--bg); overflow-y:auto; }
+.panel-head { padding:20px; border-bottom:1px solid var(--border); }
+.panel-head-title { font-size:14px; font-weight:700; margin-bottom:2px; }
+.panel-head-sub { font-family:var(--mono); font-size:10px; color:var(--text-muted); letter-spacing:.8px; text-transform:uppercase; }
+.panel-body { flex:1; overflow-y:auto; padding:12px; }
+
+/* ═══ Skill Catalog (Left Panel in Builder) ═══ */
+.catalog-group-label { padding:6px 12px; font-family:var(--mono); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin-top:10px; display:flex; align-items:center; gap:8px; }
+.catalog-group-label::after { content:''; flex:1; height:1px; background:var(--border); }
+.catalog-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--radius); cursor:grab; transition:all .15s; border:1px solid transparent; margin-bottom:2px; }
+.catalog-item:hover { background:var(--surface-2); border-color:var(--border); }
+.catalog-item.assigned { opacity:.35; cursor:default; pointer-events:none; }
+.catalog-item .ci-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+.catalog-item .ci-icon.openapi { background:var(--openapi-bg); }
+.catalog-item .ci-icon.mcp { background:var(--mcp-bg); }
+.catalog-item .ci-icon.builtin { background:var(--builtin-bg); }
+.catalog-item .ci-name { font-weight:600; font-size:13px; }
+.catalog-item .ci-desc { font-size:11px; color:var(--text-muted); }
+.catalog-item .ci-badge { font-family:var(--mono); font-size:9px; padding:2px 6px; border-radius:4px; margin-left:auto; flex-shrink:0; }
+.ci-badge.openapi { background:var(--openapi-bg); color:var(--openapi-color); }
+.ci-badge.mcp { background:var(--mcp-bg); color:var(--mcp-color); }
+.ci-badge.builtin { background:var(--builtin-bg); color:var(--builtin-color); }
+
+/* ═══ Assigned Skills (Center Panel) ═══ */
+.center-toolbar { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
+.center-toolbar h3 { font-size:15px; font-weight:700; }
+.drop-zone { margin:16px 24px; min-height:120px; border:2px dashed var(--border); border-radius:var(--radius-lg); padding:12px; transition:all .2s; display:flex; flex-direction:column; gap:8px; }
+.drop-zone.drag-over { border-color:var(--primary); background:var(--primary-bg); }
+.drop-zone.has-items { min-height:auto; }
+.drop-hint { text-align:center; color:var(--text-muted); font-size:12px; padding:28px 16px; }
+.drop-hint-icon { font-size:24px; display:block; margin-bottom:8px; opacity:.4; }
+.assigned-item { display:flex; align-items:center; gap:10px; padding:12px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); cursor:pointer; transition:all .15s; }
+.assigned-item:hover { border-color:var(--border-light); }
+.assigned-item.selected { border-color:var(--primary-border); background:var(--primary-bg); }
+.assigned-item .ai-icon { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+.assigned-item .ai-name { font-weight:600; font-size:13px; flex:1; }
+.assigned-item .ai-badge { font-family:var(--mono); font-size:9px; padding:2px 6px; border-radius:4px; }
+.ai-actions { display:flex; gap:4px; }
+.ai-btn { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-muted); font-size:12px; transition:all .15s; border:none; background:transparent; }
+.ai-btn:hover { background:var(--surface-3); color:var(--text); }
+.ai-btn.danger:hover { background:var(--danger-bg); color:var(--danger); }
+
+/* ═══ Skill Config (Right Panel) ═══ */
+.config-empty { text-align:center; padding:48px 24px; color:var(--text-muted); }
+.config-empty-icon { font-size:32px; margin-bottom:12px; opacity:.3; display:block; }
+.config-title { font-size:15px; font-weight:700; margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+.config-section-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:12px; margin-top:20px; display:flex; align-items:center; gap:8px; }
+.config-section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* ═══ Forms ═══ */
+.form-group { margin-bottom:16px; }
+.form-label { display:block; font-family:var(--mono); font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; }
+.form-input, .form-textarea, .form-select {
+  width:100%; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius);
+  color:var(--text); font-family:var(--font); font-size:13px; outline:none; transition:border-color .15s;
+}
+.form-input:focus, .form-textarea:focus, .form-select:focus { border-color:var(--primary); }
+.form-input::placeholder, .form-textarea::placeholder { color:var(--text-muted); }
+.form-textarea { resize:vertical; min-height:80px; font-family:var(--mono); font-size:12px; line-height:1.6; }
+.form-select { cursor:pointer; -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2363637a'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; }
+.form-hint { font-size:11px; color:var(--text-muted); margin-top:4px; }
+.chip-group { display:flex; gap:6px; flex-wrap:wrap; }
+.chip { padding:6px 14px; border-radius:20px; font-size:12px; font-weight:500; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text-secondary); transition:all .15s; font-family:var(--font); }
+.chip:hover { border-color:var(--border-light); color:var(--text); }
+.chip.selected { border-color:var(--primary-border); background:var(--primary-bg); color:var(--primary); }
+
+/* ═══ Buttons ═══ */
+.btn { padding:8px 18px; border-radius:var(--radius); font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary); transition:all .15s; font-family:var(--font); display:inline-flex; align-items:center; gap:6px; }
+.btn:hover { color:var(--text); background:var(--surface-3); }
+.btn-primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+.btn-primary:hover { background:var(--primary-hover); border-color:var(--primary-hover); }
+.btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+.btn-danger { color:var(--danger); border-color:var(--danger-border); background:var(--danger-bg); }
+.btn-danger:hover { background:rgba(239,68,68,.15); }
+.btn-sm { padding:6px 12px; font-size:12px; }
+.btn-xs { padding:4px 10px; font-size:11px; }
+
+/* ═══ Single-Panel Layout ═══ */
+.single-panel { height:calc(100vh - 56px); overflow-y:auto; padding:40px; }
+.single-content { max-width:720px; margin:0 auto; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; margin-bottom:16px; }
+.card h3 { font-size:16px; font-weight:700; margin-bottom:16px; }
+.summary-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.summary-row:last-child { border-bottom:none; }
+.summary-label { color:var(--text-muted); font-weight:500; }
+.summary-value { color:var(--text-secondary); text-align:right; max-width:60%; }
+.actions-bar { display:flex; justify-content:space-between; align-items:center; margin-top:28px; }
+
+/* ═══ Deploy ═══ */
+.deploy-spinner { text-align:center; padding:80px 20px; }
+.spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.deploy-success { text-align:center; padding:60px 20px; }
+.deploy-success .check { width:56px; height:56px; border-radius:50%; background:var(--accent-bg); border:2px solid var(--accent-border); display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 16px; }
+
+/* ═══ Chat ═══ */
+.chat-layout { height:calc(100vh - 56px); display:flex; flex-direction:column; max-width:800px; margin:0 auto; padding:20px; }
+.chat-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+.chat-header h2 { font-size:18px; font-weight:700; }
+.chat-header .meta { font-family:var(--mono); font-size:11px; color:var(--text-muted); }
+.chat-messages { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; padding:8px 0; }
+.chat-bubble { max-width:80%; padding:12px 16px; border-radius:var(--radius-lg); font-size:14px; line-height:1.6; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.chat-bubble.user { background:var(--primary); color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
+.chat-bubble.assistant { background:var(--surface); border:1px solid var(--border); align-self:flex-start; border-bottom-left-radius:4px; }
+.chat-bubble.assistant p { margin:0 0 8px; } .chat-bubble.assistant p:last-child { margin-bottom:0; }
+.chat-bubble.assistant strong { color:var(--text); font-weight:600; }
+.chat-bubble.assistant code { font-family:var(--mono); font-size:12px; padding:2px 6px; background:var(--surface-2); border-radius:4px; color:var(--primary); }
+.chat-bubble.assistant pre { background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin:8px 0; overflow-x:auto; }
+.chat-bubble.assistant pre code { padding:0; background:none; color:var(--text-secondary); }
+.chat-bubble.assistant ul, .chat-bubble.assistant ol { margin:8px 0; padding-left:20px; }
+.chat-bubble.assistant li { margin:4px 0; }
+.chat-bubble.assistant a { color:var(--primary); }
+.chat-bubble.assistant h1,.chat-bubble.assistant h2,.chat-bubble.assistant h3,.chat-bubble.assistant h4 { margin:12px 0 8px; font-size:15px; }
+.tool-badge { display:inline-block; font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:4px; background:var(--accent-bg); color:var(--accent); border:1px solid var(--accent-border); margin-right:4px; margin-bottom:6px; }
+.chat-input-bar { display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+.chat-input-bar input { flex:1; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); color:var(--text); font-family:var(--font); font-size:14px; outline:none; }
+.chat-input-bar input:focus { border-color:var(--primary); }
+.chat-input-bar input::placeholder { color:var(--text-muted); }
+.chat-actions { display:flex; gap:8px; margin-top:12px; justify-content:flex-end; }
+
+/* ═══ Modal ═══ */
+.modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:200; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px; width:100%; max-width:520px; box-shadow:var(--shadow-lg); max-height:80vh; overflow-y:auto; }
+.modal h3 { font-size:18px; font-weight:700; margin-bottom:20px; }
+.modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:24px; padding-top:16px; border-top:1px solid var(--border); }
+
+/* ═══ Skill Form Page ═══ */
+.skill-form-header { display:flex; align-items:center; gap:16px; margin-bottom:32px; }
+.skill-form-header h2 { font-size:22px; font-weight:700; letter-spacing:-.5px; }
+.skill-form-back { color:var(--text-muted); font-size:13px; cursor:pointer; transition:color .15s; }
+.skill-form-back:hover { color:var(--text); }
+.section-title { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+.section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+.param-row { background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:10px; position:relative; }
+.param-row-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.param-row-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.param-row .param-remove { position:absolute; top:8px; right:8px; width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-muted); font-size:14px; border:none; background:transparent; transition:all .15s; }
+.param-row .param-remove:hover { background:var(--danger-bg); color:var(--danger); }
+.param-row .form-group { margin-bottom:10px; }
+.param-row .form-group:last-child { margin-bottom:0; }
+.param-row .form-label { font-size:9px; }
+.param-row .form-input, .param-row .form-select { padding:7px 10px; font-size:12px; }
+.param-add-btn { width:100%; padding:10px; border:2px dashed var(--border); border-radius:var(--radius); background:transparent; color:var(--text-muted); font-size:12px; font-weight:500; cursor:pointer; transition:all .15s; font-family:var(--font); margin-bottom:10px; }
+.param-add-btn:hover { border-color:var(--primary-border); color:var(--primary); background:var(--primary-bg); }
+.inline-row { display:flex; align-items:center; gap:8px; }
+.toggle-label { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); cursor:pointer; }
+.toggle-label input[type="checkbox"] { accent-color:var(--primary); width:14px; height:14px; }
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+/* ═══ Theme Toggle ═══ */
+.theme-toggle { width:36px; height:36px; border-radius:var(--radius); border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; transition:all .15s; flex-shrink:0; }
+.theme-toggle:hover { color:var(--text); background:var(--surface-3); border-color:var(--border-light); }
+[data-theme="light"] .chat-bubble.user { background:var(--primary); color:#fff; }
+[data-theme="light"] .btn-primary { color:#fff; }
+[data-theme="light"] .step-pill.active .pill-num { color:#fff; }
+[data-theme="light"] .step-pill.done .pill-num { color:#fff; }
+
+/* ═══ Utilities ═══ */
+.hidden { display:none !important; }
+.tag { font-family:var(--mono); font-size:10px; padding:3px 8px; border-radius:4px; font-weight:500; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav-brand" onclick="switchView('home')"><span>Agent</span> Builder</div>
+  <div class="topnav-link" data-view="home" onclick="switchView('home')">Home</div>
+  <div class="topnav-link" data-view="skills" onclick="switchView('skills')">Skills</div>
+  <div class="topnav-link" data-view="agents" onclick="switchView('agents')">Agents</div>
+  <div class="topnav-link disabled">Roles</div>
+  <div class="topnav-spacer"></div>
+  <div id="step-pills" class="step-pills"></div>
+  <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme"></button>
+</nav>
+
+<div id="app"></div>
+<div id="modal-root" class="hidden"></div>
+
+<script>
+/* ═══════════════════════ THEME ═══════════════════════ */
+function getTheme() { return localStorage.getItem('ab-theme') || 'dark'; }
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = t === 'dark' ? '\u2600' : '\u263E';
+}
+function toggleTheme() {
+  const next = getTheme() === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('ab-theme', next);
+  applyTheme(next);
+}
+applyTheme(getTheme());
+
+/* ═══════════════════════ MOCK DATA ═══════════════════════ */
+const SKILLS = [
+  { id:'mock-weather', name:'Weather API', description:'Get current weather for any city', type:'openapi', category:'utilities', icon:'\u{1F324}', source:'builtin',
+    deploy_params:{ spec_url:{label:'OpenAPI Spec URL',type:'string',default:'https://foundryskill-mock-apis.azurewebsites.net/openapi.json',required:true}, operations:{label:'Operations to include',type:'multi_select',options:['getWeather'],default:['getWeather'],required:true}, auth_type:{label:'Authentication',type:'select',options:['anonymous','project_connection','managed_identity'],default:'anonymous',required:true}, project_connection_id:{label:'Project Connection',type:'connection_picker',default:'',required:false,show_if:{auth_type:'project_connection'},description:'Select a connection from your AI Foundry project'}},
+    runtime_params:{ default_units:{label:'Temperature units',type:'select',options:['fahrenheit','celsius'],default:'fahrenheit',required:false}, default_location:{label:'Default city',type:'string',default:'',required:false,placeholder:'e.g. Seattle'}}},
+  { id:'mock-currency', name:'Currency Converter', description:'Convert between currencies with live rates', type:'openapi', category:'utilities', icon:'\u{1F4B1}', source:'builtin',
+    deploy_params:{ spec_url:{label:'OpenAPI Spec URL',type:'string',default:'https://foundryskill-mock-apis.azurewebsites.net/openapi.json',required:true}, operations:{label:'Operations to include',type:'multi_select',options:['convertCurrency'],default:['convertCurrency'],required:true}, auth_type:{label:'Authentication',type:'select',options:['anonymous','project_connection','managed_identity'],default:'anonymous',required:true}},
+    runtime_params:{ base_currency:{label:'Default base currency',type:'string',default:'USD',required:false,placeholder:'e.g. USD'}}},
+  { id:'azure-ocr', name:'Document OCR', description:'Extract text, tables, and key-value pairs from PDFs and images', type:'openapi', category:'document-ai', icon:'\u{1F4C4}', source:'builtin',
+    deploy_params:{ spec_url:{label:'OpenAPI Spec URL',type:'string',default:'https://azure-ocr-service.example.com/openapi.json',required:true}, auth_type:{label:'Authentication',type:'select',options:['anonymous','project_connection','managed_identity'],default:'anonymous',required:true}},
+    runtime_params:{ default_model:{label:'Default model',type:'select',options:['prebuilt-read','prebuilt-layout','prebuilt-document'],default:'prebuilt-read',required:false}, output_preference:{label:'Output preference',type:'select',options:['text_only','structured','full'],default:'structured',required:false}}},
+  { id:'ms-learn-docs', name:'Microsoft Learn Docs', description:'Search and read Microsoft documentation', type:'mcp', category:'knowledge', icon:'\u{1F4D6}', source:'builtin',
+    deploy_params:{ server_url:{label:'MCP Server URL',type:'string',default:'https://learn.microsoft.com/api/mcp',required:true}, require_approval:{label:'Require approval',type:'select',options:['never','always'],default:'never',required:true}, allowed_tools:{label:'Restrict to specific tools',type:'string',default:'',required:false,placeholder:'Comma-separated, blank = all'}},
+    runtime_params:{ search_scope:{label:'Search scope',type:'string',default:'',required:false,placeholder:'e.g. azure, dotnet'}, response_style:{label:'Response style',type:'select',options:['concise','detailed','step-by-step'],default:'concise',required:false}}},
+  { id:'gitmcp-repo', name:'GitHub Repo Reader', description:'Read and search any public GitHub repository', type:'mcp', category:'knowledge', icon:'\u{1F419}', source:'builtin',
+    deploy_params:{ server_url:{label:'MCP Server URL',type:'string',default:'https://gitmcp.io/',required:true}, require_approval:{label:'Require approval',type:'select',options:['never','always'],default:'never',required:true}},
+    runtime_params:{ focus_area:{label:'Focus area',type:'string',default:'',required:false,placeholder:'e.g. src/components'}}},
+  { id:'code-interpreter', name:'Code Interpreter', description:'Run Python code for math, data analysis, and charts', type:'builtin', category:'compute', icon:'\u{1F4BB}', source:'builtin',
+    deploy_params:{},
+    runtime_params:{ language_preference:{label:'Language preference',type:'select',options:['python','auto'],default:'python',required:false}}},
+];
+
+const MOCK_AGENTS = [
+  { name:'weather-assistant', id:'asst_a7f3b9c2d4e6', version:2, description:'Agent with Weather API, Code Interpreter' },
+  { name:'research-bot', id:'asst_e1d2c3b4a5f6', version:1, description:'Agent with MS Learn Docs, GitHub Repo Reader' },
+  { name:'doc-analyzer', id:'asst_f9e8d7c6b5a4', version:3, description:'Agent with Document OCR, Code Interpreter' },
+];
+
+const HEALTH_SIM = {
+  'mock-weather': { delay:1200, status:'unhealthy', message:'Connection timeout', details:{} },
+  'mock-currency': { delay:800, status:'healthy', message:'Valid OpenAPI 3.0.2 spec with 4 operations', details:{response_time_ms:340} },
+  'azure-ocr': { delay:700, status:'healthy', message:'Valid OpenAPI 3.0.2 spec with 2 operations', details:{response_time_ms:220} },
+  'ms-learn-docs': { delay:500, status:'healthy', message:'Server reachable (HTTP 405)', details:{response_time_ms:126} },
+  'gitmcp-repo': { delay:600, status:'healthy', message:'Server reachable (HTTP 200)', details:{response_time_ms:310} },
+  'code-interpreter': { delay:100, status:'healthy', message:'Built-in skill is always available', details:{} },
+};
+
+/* ═══════════════════════ STATE ═══════════════════════ */
+const S = {
+  view: 'home', // 'home' | 'skills' | 'agents' | 'builder'
+  step: 1,
+  skills: [...SKILLS],
+  assigned: {},
+  selectedSkillId: null,
+  health: {},
+  agentName: '', agentModel: 'gpt-4.1', instructions: '',
+  deployedAgent: null,
+  chat: [], previousResponseId: null,
+  skillFormMode: null, skillFormData: null,
+};
+
+/* ═══════════════════════ INIT ═══════════════════════ */
+marked.setOptions({ breaks: true });
+render();
+
+/* ═══════════════════════ RENDER ROUTER ═══════════════════════ */
+function render() {
+  renderNav();
+  renderStepPills();
+  const app = document.getElementById('app');
+  switch (S.view) {
+    case 'home': renderHome(app); break;
+    case 'skills': renderSkillsPage(app); break;
+    case 'skill-form': renderSkillFormPage(app); break;
+    case 'agents': renderAgentList(app); break;
+    case 'builder':
+      switch (S.step) {
+        case 1: renderBuilderStep1(app); break;
+        case 2: renderBuilderStep2(app); break;
+        case 3: renderBuilderStep3Review(app); break;
+        case 4: renderBuilderStep4Deploy(app); break;
+        case 5: renderBuilderStep5Chat(app); break;
+      } break;
+  }
+}
+
+function renderNav() {
+  document.querySelectorAll('.topnav-link[data-view]').forEach(el => {
+    const v = el.dataset.view;
+    el.classList.toggle('active', v === S.view || (v === 'agents' && S.view === 'builder') || (v === 'skills' && S.view === 'skill-form'));
+  });
+}
+
+function renderStepPills() {
+  const el = document.getElementById('step-pills');
+  if (S.view !== 'builder') { el.innerHTML = ''; return; }
+  const steps = [{n:1,l:'Skills'},{n:2,l:'Configure'},{n:3,l:'Review'},{n:4,l:'Deploy'},{n:5,l:'Chat'}];
+  el.innerHTML = steps.map((s,i) => {
+    const cls = s.n === S.step ? 'active' : s.n < S.step ? 'done' : '';
+    const icon = s.n < S.step ? '\u2713' : s.n;
+    return (i > 0 ? '<div class="step-connector"></div>' : '') +
+      `<div class="step-pill ${cls}"><div class="pill-num">${icon}</div>${s.l}</div>`;
+  }).join('');
+}
+
+/* ═══════════════════════ NAVIGATION ═══════════════════════ */
+function switchView(v) {
+  S.view = v;
+  if (v === 'builder') { S.step = 1; S.assigned = {}; S.selectedSkillId = null; S.agentName = ''; S.instructions = ''; S.deployedAgent = null; S.chat = []; S.previousResponseId = null; }
+  render();
+}
+
+function goStep(n) {
+  if (n === 2 && Object.keys(S.assigned).length === 0) return;
+  if (n === 3) {
+    S.agentName = _val('cfg-name') || S.agentName;
+    S.agentModel = _val('cfg-model') || S.agentModel;
+    S.instructions = _val('cfg-instructions') || S.instructions;
+    if (!S.agentName || !S.instructions) return;
+  }
+  S.step = n; render();
+}
+
+function openAgentChat(name) {
+  const a = MOCK_AGENTS.find(x => x.name === name);
+  S.view = 'builder'; S.step = 5; S.deployedAgent = a; S.chat = []; S.previousResponseId = null;
+  S.assigned = {}; render();
+}
+
+/* ═══════════════════════ HOME PAGE ═══════════════════════ */
+function renderHome(app) {
+  app.innerHTML = `<div class="page-view"><div class="page-content">
+    <div class="hero">
+      <h1>Build <span>Intelligent</span> Agents</h1>
+      <p>Register Skills, compose them into Agents, and orchestrate Agents into Roles that scale to meet demand.</p>
+    </div>
+    <div class="home-flow">
+      <div class="home-card" onclick="switchView('skills')">
+        <div class="home-card-num skills">01</div>
+        <h3>Skills</h3>
+        <p>Register and manage your OpenAPI endpoints, MCP servers, and built-in capabilities.</p>
+      </div>
+      <div class="home-flow-arrow">\u2192</div>
+      <div class="home-card" onclick="switchView('agents')">
+        <div class="home-card-num agents">02</div>
+        <h3>Agents</h3>
+        <p>Assign Skills to intelligent Agents with custom instructions and deploy to Azure AI Foundry.</p>
+      </div>
+      <div class="home-flow-arrow">\u2192</div>
+      <div class="home-card disabled">
+        <span class="coming-soon">Coming Soon</span>
+        <div class="home-card-num roles">03</div>
+        <h3>Roles</h3>
+        <p>Compose Agents into workflows with human-in-the-loop steps and cloning criteria.</p>
+      </div>
+    </div>
+    <div class="home-cards-bottom">
+      <div class="home-info-card">
+        <span class="ic">\u{1F9E9}</span>
+        <h4>Skill Catalog</h4>
+        <p>Browse, create, and manage reusable skills \u2014 OpenAPI endpoints, MCP servers, and built-in tools like Code Interpreter. Full CRUD with health checks.</p>
+      </div>
+      <div class="home-info-card">
+        <span class="ic">\u{1F916}</span>
+        <h4>Visual Agent Builder</h4>
+        <p>Drag-and-drop skills onto agents, configure parameters per skill, set model and instructions \u2014 all through a guided wizard with live preview.</p>
+      </div>
+      <div class="home-info-card">
+        <span class="ic">\u{2601}\u{FE0F}</span>
+        <h4>Azure AI Foundry Deploy</h4>
+        <p>One-click deploy to Azure AI Foundry with automatic versioning. Managed identity auth, no secrets to manage. Redeploy to create new versions.</p>
+      </div>
+      <div class="home-info-card">
+        <span class="ic">\u{1F4AC}</span>
+        <h4>Integrated Playground</h4>
+        <p>Chat with deployed agents instantly. Markdown rendering, tool invocation badges, and conversation history \u2014 test before going to production.</p>
+      </div>
+    </div>
+  </div></div>`;
+}
+
+/* ─── Skill param hint for cards ─── */
+function getSkillParamHint(t) {
+  const dp = t.deploy_params || {};
+  const rp = t.runtime_params || {};
+  let hint = '';
+  if (t.type === 'openapi' && dp.spec_url) hint = `<span class="param-key">spec:</span> ${esc(dp.spec_url.default || '')}`;
+  else if (t.type === 'mcp' && dp.server_url) hint = `<span class="param-key">server:</span> ${esc(dp.server_url.default || '')}`;
+  const connectionKeys = ['spec_url','auth_type','server_url','require_approval'];
+  const dpCount = Object.keys(dp).filter(k => !connectionKeys.includes(k)).length;
+  const rpCount = Object.keys(rp).length;
+  if (dpCount || rpCount) {
+    const parts = [];
+    if (dpCount) parts.push(`${dpCount} deploy`);
+    if (rpCount) parts.push(`${rpCount} runtime`);
+    hint += (hint ? ' &middot; ' : '') + `<span class="param-key">${parts.join(', ')} params</span>`;
+  }
+  return hint;
+}
+
+/* ═══════════════════════ SKILLS PAGE ═══════════════════════ */
+function renderSkillsPage(app) {
+  const groups = { openapi:'OPENAPI', mcp:'MCP', builtin:'BUILTIN' };
+  let cardsHtml = '';
+  for (const [type, label] of Object.entries(groups)) {
+    const items = S.skills.filter(t => t.type === type);
+    if (!items.length) continue;
+    cardsHtml += `<div class="skills-group-label">${label} (${items.length})</div>`;
+    items.forEach(t => {
+      const isCustom = t.source === 'custom';
+      const h = S.health[t.id];
+      let healthHtml = '';
+      if (h) {
+        if (h.loading) healthHtml = '<span class="health-inline loading"><span class="spinner" style="width:12px;height:12px;border-width:2px"></span></span>';
+        else if (h.status === 'healthy') { const ms = h.details?.response_time_ms ? ` ${h.details.response_time_ms}ms` : ''; healthHtml = `<span class="health-inline ok">\u2713${ms}</span>`; }
+        else healthHtml = `<span class="health-inline err">\u2717 ${esc(h.message)}</span>`;
+      }
+      const paramHint = getSkillParamHint(t);
+      cardsHtml += `<div class="skill-card">
+        <div class="sk-icon ${t.type}">${t.icon}</div>
+        <div class="sk-info">
+          <div class="sk-name">${esc(t.name)} ${!isCustom ? '<span class="sk-lock" title="Built-in skill">\u{1F512}</span>' : ''}</div>
+          <div class="sk-desc">${esc(t.description)}</div>
+          ${paramHint ? `<div class="sk-params">${paramHint}</div>` : ''}
+        </div>
+        <div class="sk-actions">
+          ${healthHtml}
+          <span class="sk-badge ${t.type}">${t.type}</span>
+          <button class="btn btn-xs" onclick="testSkillHealth('${t.id}')">Test</button>
+          ${isCustom ? `<button class="btn btn-xs" onclick="openEditSkill('${t.id}')">Edit</button>
+          <button class="btn btn-xs btn-danger" onclick="showDeleteSkillModal('${t.id}')">Del</button>` : ''}
+        </div>
+      </div>`;
+    });
+  }
+
+  app.innerHTML = `<div class="page-view"><div class="page-content">
+    <div class="skills-header">
+      <h2>Skills</h2>
+      <button class="btn btn-primary" onclick="openAddSkill()">+ Add Custom Skill</button>
+    </div>
+    ${cardsHtml}
+  </div></div>`;
+}
+
+function testSkillHealth(id) {
+  S.health[id] = { loading:true };
+  renderSkillsOrBuilder();
+  const sim = HEALTH_SIM[id] || { delay:500, status:'healthy', message:'OK', details:{} };
+  setTimeout(() => {
+    S.health[id] = { status:sim.status, message:sim.message, details:sim.details };
+    renderSkillsOrBuilder();
+  }, sim.delay);
+}
+
+function renderSkillsOrBuilder() {
+  if (S.view === 'skills') render();
+  else if (S.view === 'builder' && S.step === 1) refreshBuilderStep1();
+}
+
+/* ─── Skill Form (Full Page) ─── */
+function openAddSkill() {
+  S.skillFormMode = 'add';
+  S.skillFormData = {
+    id:'', name:'', description:'', type:'openapi', category:'',
+    specUrl:'', authType:'anonymous', serverUrl:'', approvalType:'never',
+    deployParams: [],
+    runtimeParams: [],
+  };
+  S.view = 'skill-form';
+  render();
+}
+
+function openEditSkill(id) {
+  const t = S.skills.find(x => x.id === id);
+  if (!t || t.source !== 'custom') return;
+  S.skillFormMode = 'edit';
+  const dp = t.deploy_params || {};
+  const rp = t.runtime_params || {};
+  // Extract connection fields and custom params separately
+  let specUrl = '', authType = 'anonymous', serverUrl = '', approvalType = 'never';
+  const deployParams = [];
+  const connectionKeys = ['spec_url','auth_type','server_url','require_approval'];
+  for (const [k,v] of Object.entries(dp)) {
+    if (k === 'spec_url') { specUrl = v.default || ''; }
+    else if (k === 'auth_type') { authType = v.default || 'anonymous'; }
+    else if (k === 'server_url') { serverUrl = v.default || ''; }
+    else if (k === 'require_approval') { approvalType = v.default || 'never'; }
+    else { deployParams.push({ key:k, label:v.label||k, type:v.type||'string', options:(v.options||[]).join(', '), default:Array.isArray(v.default)?v.default.join(', '):(v.default||''), required:!!v.required, description:v.description||'', placeholder:v.placeholder||'' }); }
+  }
+  const runtimeParams = [];
+  for (const [k,v] of Object.entries(rp)) {
+    runtimeParams.push({ key:k, label:v.label||k, type:v.type||'string', options:(v.options||[]).join(', '), default:Array.isArray(v.default)?v.default.join(', '):(v.default||''), required:!!v.required, description:v.description||'', placeholder:v.placeholder||'' });
+  }
+  S.skillFormData = { id:t.id, name:t.name, description:t.description, type:t.type, category:t.category, specUrl, authType, serverUrl, approvalType, deployParams, runtimeParams };
+  S.view = 'skill-form';
+  render();
+}
+
+function renderSkillFormPage(app) {
+  const d = S.skillFormData; if (!d) { switchView('skills'); return; }
+  const isEdit = S.skillFormMode === 'edit';
+  const title = isEdit ? `Edit Skill: ${esc(d.name || d.id)}` : 'Add Custom Skill';
+
+  app.innerHTML = `<div class="page-view"><div class="page-content" style="max-width:800px">
+    <div class="skill-form-header">
+      <span class="skill-form-back" onclick="switchView('skills')">&larr; Back to Skills</span>
+      <h2>${title}</h2>
+    </div>
+
+    <!-- Basic Info -->
+    <div class="card">
+      <h3>Basic Information</h3>
+      ${!isEdit ? `<div class="form-group"><label class="form-label">Type *</label>
+        <div class="chip-group">
+          <button class="chip ${d.type==='openapi'?'selected':''}" onclick="sfSetType('openapi')">OpenAPI</button>
+          <button class="chip ${d.type==='mcp'?'selected':''}" onclick="sfSetType('mcp')">MCP</button>
+        </div></div>` : `<div class="form-group"><label class="form-label">Type</label><div style="font-size:13px;color:var(--text-secondary);padding:4px 0">${d.type.toUpperCase()}</div></div>`}
+      <div class="form-grid-2">
+        <div class="form-group"><label class="form-label">ID *</label>
+          <input class="form-input" id="sf-id" value="${esc(d.id)}" placeholder="my-skill-name" ${isEdit?'disabled':''}>
+          ${!isEdit ? '<div class="form-hint">Lowercase letters, numbers, hyphens only</div>' : ''}</div>
+        <div class="form-group"><label class="form-label">Category *</label>
+          <input class="form-input" id="sf-cat" value="${esc(d.category)}" placeholder="e.g. utilities, knowledge"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="sf-name" value="${esc(d.name)}" placeholder="My Skill"></div>
+      <div class="form-group"><label class="form-label">Description *</label><input class="form-input" id="sf-desc" value="${esc(d.description)}" placeholder="What does this skill do?"></div>
+    </div>
+
+    <!-- Connection -->
+    <div class="card">
+      <h3>${d.type === 'openapi' ? 'OpenAPI Connection' : 'MCP Connection'}</h3>
+      ${d.type === 'openapi' ? `
+        <div class="form-group"><label class="form-label">OpenAPI Spec URL *</label>
+          <input class="form-input" id="sf-spec" value="${esc(d.specUrl)}" placeholder="https://api.example.com/openapi.json"></div>
+        <div class="form-group"><label class="form-label">Authentication</label>
+          <select class="form-select" id="sf-auth">
+            <option value="anonymous" ${d.authType==='anonymous'?'selected':''}>anonymous</option>
+            <option value="project_connection" ${d.authType==='project_connection'?'selected':''}>project_connection</option>
+            <option value="managed_identity" ${d.authType==='managed_identity'?'selected':''}>managed_identity</option>
+          </select></div>` : `
+        <div class="form-group"><label class="form-label">MCP Server URL *</label>
+          <input class="form-input" id="sf-server" value="${esc(d.serverUrl)}" placeholder="https://example.com/api/mcp">
+          <div class="form-hint">For GitHub repos: https://gitmcp.io/owner/repo</div></div>
+        <div class="form-group"><label class="form-label">Require Approval</label>
+          <select class="form-select" id="sf-approval">
+            <option value="never" ${d.approvalType==='never'?'selected':''}>never</option>
+            <option value="always" ${d.approvalType==='always'?'selected':''}>always</option>
+          </select></div>`}
+    </div>
+
+    <!-- Deploy Parameters -->
+    <div class="card">
+      <h3>Deploy Parameters</h3>
+      <div class="form-hint" style="margin-bottom:16px">Parameters configured once when the skill is assigned to an agent (e.g. API operations, connection IDs).</div>
+      <div id="sf-deploy-params">${renderParamRows(d.deployParams, 'deploy')}</div>
+      <button class="param-add-btn" onclick="sfAddParam('deploy')">+ Add Deploy Parameter</button>
+    </div>
+
+    <!-- Runtime Parameters -->
+    <div class="card">
+      <h3>Runtime Parameters</h3>
+      <div class="form-hint" style="margin-bottom:16px">Preferences that can be tuned per agent without redeployment (e.g. default values, formatting).</div>
+      <div id="sf-runtime-params">${renderParamRows(d.runtimeParams, 'runtime')}</div>
+      <button class="param-add-btn" onclick="sfAddParam('runtime')">+ Add Runtime Parameter</button>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-bar" style="margin-bottom:40px">
+      <button class="btn" onclick="switchView('skills')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSkillForm()">${isEdit ? 'Save Changes' : 'Add Skill'}</button>
+    </div>
+  </div></div>`;
+}
+
+function renderParamRows(params, section) {
+  if (!params || !params.length) return '';
+  return params.map((p, i) => `
+    <div class="param-row">
+      <button class="param-remove" onclick="sfRemoveParam('${section}',${i})" title="Remove">&times;</button>
+      <div class="param-row-grid">
+        <div class="form-group"><label class="form-label">Key *</label>
+          <input class="form-input" data-sf="${section}-${i}-key" value="${esc(p.key)}" placeholder="param_name"></div>
+        <div class="form-group"><label class="form-label">Label *</label>
+          <input class="form-input" data-sf="${section}-${i}-label" value="${esc(p.label)}" placeholder="Display Name"></div>
+      </div>
+      <div class="param-row-grid-3">
+        <div class="form-group"><label class="form-label">Type</label>
+          <select class="form-select" data-sf="${section}-${i}-type" onchange="sfParamTypeChanged('${section}',${i},this.value)">
+            <option value="string" ${p.type==='string'?'selected':''}>string</option>
+            <option value="select" ${p.type==='select'?'selected':''}>select</option>
+            <option value="multi_select" ${p.type==='multi_select'?'selected':''}>multi_select</option>
+            <option value="connection_picker" ${p.type==='connection_picker'?'selected':''}>connection_picker</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Default</label>
+          <input class="form-input" data-sf="${section}-${i}-default" value="${esc(p.default)}" placeholder="${p.type==='multi_select'?'comma-separated':''}"></div>
+        <div class="form-group"><label class="form-label">&nbsp;</label>
+          <label class="toggle-label"><input type="checkbox" data-sf="${section}-${i}-required" ${p.required?'checked':''}> Required</label></div>
+      </div>
+      ${p.type === 'select' || p.type === 'multi_select' ? `
+      <div class="form-group"><label class="form-label">Options (comma-separated) *</label>
+        <input class="form-input" data-sf="${section}-${i}-options" value="${esc(p.options)}" placeholder="option1, option2, option3"></div>` : ''}
+      <div class="param-row-grid">
+        <div class="form-group"><label class="form-label">Description</label>
+          <input class="form-input" data-sf="${section}-${i}-desc" value="${esc(p.description)}" placeholder="Help text for this parameter"></div>
+        <div class="form-group"><label class="form-label">Placeholder</label>
+          <input class="form-input" data-sf="${section}-${i}-placeholder" value="${esc(p.placeholder)}" placeholder="Input placeholder text"></div>
+      </div>
+    </div>`).join('');
+}
+
+function sfReadFormFields() {
+  const d = S.skillFormData;
+  d.id = (_val('sf-id') || d.id);
+  d.name = (_val('sf-name') || d.name);
+  d.description = (_val('sf-desc') || d.description);
+  d.category = (_val('sf-cat') || d.category);
+  d.specUrl = (_val('sf-spec') ?? d.specUrl);
+  d.authType = (_val('sf-auth') ?? d.authType);
+  d.serverUrl = (_val('sf-server') ?? d.serverUrl);
+  d.approvalType = (_val('sf-approval') ?? d.approvalType);
+  // Read param rows
+  ['deploy','runtime'].forEach(section => {
+    const arr = section === 'deploy' ? d.deployParams : d.runtimeParams;
+    arr.forEach((p, i) => {
+      const v = attr => { const el = document.querySelector(`[data-sf="${section}-${i}-${attr}"]`); return el ? (el.type === 'checkbox' ? el.checked : el.value) : null; };
+      const key = v('key'); if (key !== null) p.key = key;
+      const label = v('label'); if (label !== null) p.label = label;
+      const type = v('type'); if (type !== null) p.type = type;
+      const def = v('default'); if (def !== null) p.default = def;
+      const req = v('required'); if (req !== null) p.required = req;
+      const opts = v('options'); if (opts !== null) p.options = opts;
+      const desc = v('desc'); if (desc !== null) p.description = desc;
+      const ph = v('placeholder'); if (ph !== null) p.placeholder = ph;
+    });
+  });
+}
+
+function sfSetType(type) {
+  sfReadFormFields();
+  S.skillFormData.type = type;
+  render();
+}
+
+function sfAddParam(section) {
+  sfReadFormFields();
+  const arr = section === 'deploy' ? S.skillFormData.deployParams : S.skillFormData.runtimeParams;
+  const idx = arr.length;
+  arr.push({ key:'', label:'', type:'string', options:'', default:'', required:false, description:'', placeholder:'' });
+  // Re-render just the param container instead of full page
+  const container = document.getElementById(`sf-${section}-params`);
+  if (container) {
+    container.innerHTML = renderParamRows(section === 'deploy' ? S.skillFormData.deployParams : S.skillFormData.runtimeParams, section);
+    const newRow = container.querySelector(`[data-sf="${section}-${idx}-key"]`);
+    if (newRow) { newRow.scrollIntoView({ behavior:'smooth', block:'center' }); newRow.focus(); }
+  }
+}
+
+function sfRemoveParam(section, idx) {
+  sfReadFormFields();
+  const arr = section === 'deploy' ? S.skillFormData.deployParams : S.skillFormData.runtimeParams;
+  arr.splice(idx, 1);
+  const container = document.getElementById(`sf-${section}-params`);
+  if (container) container.innerHTML = renderParamRows(arr, section);
+}
+
+function sfParamTypeChanged(section, idx, newType) {
+  sfReadFormFields();
+  const arr = section === 'deploy' ? S.skillFormData.deployParams : S.skillFormData.runtimeParams;
+  arr[idx].type = newType;
+  const container = document.getElementById(`sf-${section}-params`);
+  if (container) container.innerHTML = renderParamRows(arr, section);
+}
+
+function saveSkillForm() {
+  sfReadFormFields();
+  const d = S.skillFormData;
+  const id = d.id.trim();
+  const name = d.name.trim();
+  const desc = d.description.trim();
+  const cat = d.category.trim();
+  if (!id || !name || !desc || !cat) { alert('Please fill all required fields (ID, Name, Description, Category).'); return; }
+  if (!/^[a-z0-9-]+$/.test(id)) { alert('ID: lowercase letters, numbers, hyphens only.'); return; }
+
+  // Build connection params
+  const dp = {};
+  if (d.type === 'openapi') {
+    if (!d.specUrl.trim()) { alert('OpenAPI Spec URL is required.'); return; }
+    dp.spec_url = { label:'OpenAPI Spec URL', type:'string', default:d.specUrl.trim(), required:true };
+    dp.auth_type = { label:'Authentication', type:'select', options:['anonymous','project_connection','managed_identity'], default:d.authType, required:true };
+  } else if (d.type === 'mcp') {
+    if (!d.serverUrl.trim()) { alert('MCP Server URL is required.'); return; }
+    dp.server_url = { label:'MCP Server URL', type:'string', default:d.serverUrl.trim(), required:true };
+    dp.require_approval = { label:'Require approval', type:'select', options:['never','always'], default:d.approvalType, required:true };
+  }
+
+  // Build custom deploy params
+  for (const p of d.deployParams) {
+    if (!p.key.trim() || !p.label.trim()) { alert('Each parameter needs a Key and Label.'); return; }
+    if ((p.type === 'select' || p.type === 'multi_select') && !p.options.trim()) { alert(`Parameter "${p.key}" is a ${p.type} but has no options.`); return; }
+    const entry = { label:p.label.trim(), type:p.type, required:p.required };
+    if (p.type === 'select' || p.type === 'multi_select') {
+      entry.options = p.options.split(',').map(o => o.trim()).filter(Boolean);
+      entry.default = p.type === 'multi_select' ? p.default.split(',').map(o => o.trim()).filter(Boolean) : (p.default.trim() || entry.options[0] || '');
+    } else {
+      entry.default = p.default.trim();
+    }
+    if (p.description.trim()) entry.description = p.description.trim();
+    if (p.placeholder.trim()) entry.placeholder = p.placeholder.trim();
+    dp[p.key.trim()] = entry;
+  }
+
+  // Build runtime params
+  const rp = {};
+  for (const p of d.runtimeParams) {
+    if (!p.key.trim() || !p.label.trim()) { alert('Each parameter needs a Key and Label.'); return; }
+    if ((p.type === 'select' || p.type === 'multi_select') && !p.options.trim()) { alert(`Parameter "${p.key}" is a ${p.type} but has no options.`); return; }
+    const entry = { label:p.label.trim(), type:p.type, required:p.required };
+    if (p.type === 'select' || p.type === 'multi_select') {
+      entry.options = p.options.split(',').map(o => o.trim()).filter(Boolean);
+      entry.default = p.type === 'multi_select' ? p.default.split(',').map(o => o.trim()).filter(Boolean) : (p.default.trim() || entry.options[0] || '');
+    } else {
+      entry.default = p.default.trim();
+    }
+    if (p.description.trim()) entry.description = p.description.trim();
+    if (p.placeholder.trim()) entry.placeholder = p.placeholder.trim();
+    rp[p.key.trim()] = entry;
+  }
+
+  if (S.skillFormMode === 'add') {
+    if (S.skills.find(t => t.id === id)) { alert('Skill ID already exists.'); return; }
+    S.skills.push({ id, name, description:desc, type:d.type, category:cat, icon:'\u{1F527}', source:'custom', deploy_params:dp, runtime_params:rp });
+  } else {
+    const t = S.skills.find(x => x.id === id);
+    if (t) { t.name = name; t.description = desc; t.category = cat; t.deploy_params = dp; t.runtime_params = rp; }
+  }
+  S.view = 'skills';
+  render();
+}
+
+function showDeleteSkillModal(id) {
+  const t = S.skills.find(x => x.id === id);
+  const root = document.getElementById('modal-root');
+  root.classList.remove('hidden');
+  root.innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>Delete Skill</h3>
+      <p style="color:var(--text-secondary)">Are you sure you want to delete <strong>${esc(t?.name || id)}</strong>?</p>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteSkill('${id}')">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function confirmDeleteSkill(id) {
+  S.skills = S.skills.filter(t => t.id !== id);
+  delete S.health[id]; delete S.assigned[id];
+  closeModal(); render();
+}
+
+function closeModal() {
+  document.getElementById('modal-root').classList.add('hidden');
+  document.getElementById('modal-root').innerHTML = '';
+  S.skillFormMode = null; S.skillFormData = null;
+}
+
+/* ═══════════════════════ AGENT LIST ═══════════════════════ */
+function renderAgentList(app) {
+  app.innerHTML = `<div class="page-view"><div class="page-content">
+    <div class="skills-header">
+      <h2>Deployed Agents</h2>
+      <button class="btn btn-primary" onclick="switchView('builder')">+ Create New Agent</button>
+    </div>
+    ${MOCK_AGENTS.length === 0 ? '<div class="empty-state"><h3>No agents deployed yet</h3><p>Create your first agent to get started.</p></div>' :
+    `<div class="agent-grid">${MOCK_AGENTS.map(a => `
+      <div class="agent-card" onclick="openAgentChat('${a.name}')">
+        <h3>${esc(a.name)}</h3>
+        <div class="meta">v${a.version} \u00b7 ${a.id.substring(0,12)}...</div>
+        <div class="desc">${esc(a.description)}</div>
+      </div>`).join('')}</div>`}
+  </div></div>`;
+}
+
+/* ═══════════════════════ BUILDER STEP 1: SKILLS (3-PANEL) ═══════════════════════ */
+function renderBuilderStep1(app) {
+  app.innerHTML = `<div class="builder-3panel">
+    <div class="panel panel-left">
+      <div class="panel-head"><div class="panel-head-title">Skill Catalog</div><div class="panel-head-sub">Drag to assign \u2192</div></div>
+      <div class="panel-body" id="catalog-list">${renderCatalog()}</div>
+    </div>
+    <div class="panel-center" id="center-panel">${renderAssigned()}</div>
+    <div class="panel panel-right">
+      <div class="panel-head"><div class="panel-head-title">Skill Configuration</div><div class="panel-head-sub">Select assigned skill</div></div>
+      <div class="panel-body" id="config-panel">${renderConfig()}</div>
+    </div>
+  </div>`;
+  setupDrag();
+}
+
+function renderCatalog() {
+  const groups = { openapi:'OPENAPI', mcp:'MCP', builtin:'BUILTIN' };
+  let html = '';
+  for (const [type, label] of Object.entries(groups)) {
+    const items = S.skills.filter(t => t.type === type);
+    if (!items.length) continue;
+    html += `<div class="catalog-group-label">${label}</div>`;
+    items.forEach(t => {
+      const isAssigned = !!S.assigned[t.id];
+      html += `<div class="catalog-item ${isAssigned ? 'assigned' : ''}" draggable="${!isAssigned}" data-skill-id="${t.id}">
+        <div class="ci-icon ${t.type}">${t.icon}</div>
+        <div><div class="ci-name">${esc(t.name)}</div><div class="ci-desc">${esc(t.description)}</div></div>
+        <div class="ci-badge ${t.type}">${t.type}</div>
+      </div>`;
+    });
+  }
+  return html;
+}
+
+function renderAssigned() {
+  const ids = Object.keys(S.assigned);
+  const count = ids.length;
+  let html = `<div class="center-toolbar">
+    <h3>Assigned Skills <span style="color:var(--text-muted);font-weight:400;font-size:13px">(${count})</span></h3>
+    <span style="font-size:12px;color:var(--text-muted)">Manage skills on the <a href="#" onclick="event.preventDefault();switchView('skills')" style="color:var(--primary);text-decoration:none">Skills page</a></span>
+  </div>
+  <div class="drop-zone ${count ? 'has-items' : ''}" id="drop-zone"
+    ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)">`;
+  if (!count) {
+    html += `<div class="drop-hint"><span class="drop-hint-icon">\u2193</span>Drag skills from the catalog to assign them<br><span style="font-size:11px;color:var(--text-muted)">Skills become capabilities the Agent can invoke.</span></div>`;
+  } else {
+    ids.forEach(id => {
+      const t = S.skills.find(x => x.id === id);
+      if (!t) return;
+      const sel = S.selectedSkillId === id ? 'selected' : '';
+      const h = S.health[id];
+      let healthHtml = '';
+      if (h) {
+        if (h.loading) healthHtml = '<span class="health-inline loading"><span class="spinner" style="width:12px;height:12px;border-width:2px"></span></span>';
+        else if (h.status === 'healthy') { const ms = h.details?.response_time_ms ? ` ${h.details.response_time_ms}ms` : ''; healthHtml = `<span class="health-inline ok">\u2713${ms}</span>`; }
+        else healthHtml = `<span class="health-inline err">\u2717</span>`;
+      }
+      html += `<div class="assigned-item ${sel}" onclick="selectSkill('${id}')">
+        <div class="ai-icon ci-icon ${t.type}">${t.icon}</div>
+        <div class="ai-name">${esc(t.name)}</div>
+        ${healthHtml}
+        <div class="ai-badge ci-badge ${t.type}">${t.type}</div>
+        <div class="ai-actions">
+          <button class="ai-btn" onclick="event.stopPropagation();testSkillHealth('${id}')" title="Test">\u26A1</button>
+          <button class="ai-btn danger" onclick="event.stopPropagation();unassignSkill('${id}')" title="Remove">\u2715</button>
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div>
+  <div style="padding:20px 24px;display:flex;justify-content:flex-end">
+    <button class="btn btn-primary" onclick="goStep(2)" ${!count ? 'disabled' : ''}>Next: Configure Agent \u2192</button>
+  </div>`;
+  return html;
+}
+
+function renderConfig() {
+  if (!S.selectedSkillId || !S.assigned[S.selectedSkillId]) {
+    return `<div class="config-empty"><span class="config-empty-icon">\u2699</span><div style="font-size:13px">Select an assigned skill<br>to configure its parameters.</div></div>`;
+  }
+  const t = S.skills.find(x => x.id === S.selectedSkillId);
+  const dp = t.deploy_params || {};
+  const rp = t.runtime_params || {};
+  const dpKeys = Object.keys(dp);
+  const rpKeys = Object.keys(rp);
+
+  let html = `<div class="config-title">${t.icon} ${esc(t.name)}</div>`;
+  if (dpKeys.length) {
+    html += '<div class="config-section-label">Deploy Configuration</div>';
+    dpKeys.forEach(k => { html += renderParamField(t.id, 'deploy_params', k, dp[k]); });
+  }
+  if (rpKeys.length) {
+    html += '<div class="config-section-label">Runtime Preferences</div>';
+    rpKeys.forEach(k => { html += renderParamField(t.id, 'runtime_params', k, rp[k]); });
+  }
+  if (!dpKeys.length && !rpKeys.length) {
+    html += '<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No parameters to configure.</div>';
+  }
+  return html;
+}
+
+function renderParamField(skillId, section, key, param) {
+  const stored = S.assigned[skillId]?.[section]?.[key];
+  const value = stored !== undefined ? stored : (param.default ?? '');
+  const req = param.required ? ' *' : '';
+  if (param.show_if) {
+    const [ck,cv] = Object.entries(param.show_if)[0];
+    const curVal = S.assigned[skillId]?.[section]?.[ck] ?? S.skills.find(t=>t.id===skillId)?.[section]?.[ck]?.default ?? '';
+    if (curVal !== cv) return '';
+  }
+  let html = `<div class="form-group"><label class="form-label">${esc(param.label)}${req}</label>`;
+  if (param.description) html += `<div class="form-hint" style="margin-bottom:6px">${esc(param.description)}</div>`;
+  if (param.type === 'select') {
+    html += `<select class="form-select" onchange="setParam('${skillId}','${section}','${key}',this.value)">${(param.options||[]).map(o => `<option value="${o}" ${o===value?'selected':''}>${o}</option>`).join('')}</select>`;
+  } else if (param.type === 'multi_select') {
+    const sel = Array.isArray(value) ? value : [];
+    html += `<div class="chip-group">${(param.options||[]).map(o => `<button type="button" class="chip ${sel.includes(o)?'selected':''}" onclick="toggleMulti('${skillId}','${section}','${key}','${o}')">${o}</button>`).join('')}</div>`;
+  } else if (param.type === 'connection_picker') {
+    html += `<input class="form-input" value="${esc(value)}" placeholder="Connection ID" onchange="setParam('${skillId}','${section}','${key}',this.value)">`;
+  } else {
+    html += `<input class="form-input" value="${esc(value)}" placeholder="${esc(param.placeholder||'')}" onchange="setParam('${skillId}','${section}','${key}',this.value)">`;
+  }
+  html += '</div>';
+  return html;
+}
+
+/* ─── Drag & Drop ─── */
+function setupDrag() {
+  document.querySelectorAll('.catalog-item[draggable="true"]').forEach(el => {
+    el.addEventListener('dragstart', e => { e.dataTransfer.setData('skill-id', el.dataset.skillId); el.style.opacity = '.5'; });
+    el.addEventListener('dragend', e => { el.style.opacity = '1'; });
+  });
+}
+function dzOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dzLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function dzDrop(e) {
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  const id = e.dataTransfer.getData('skill-id');
+  if (!id || S.assigned[id]) return;
+  S.assigned[id] = { deploy_params:{}, runtime_params:{} };
+  S.selectedSkillId = id;
+  refreshBuilderStep1();
+}
+
+function selectSkill(id) { S.selectedSkillId = id; refreshBuilderStep1(); }
+function unassignSkill(id) {
+  delete S.assigned[id]; delete S.health[id];
+  if (S.selectedSkillId === id) S.selectedSkillId = null;
+  refreshBuilderStep1();
+}
+
+function refreshBuilderStep1() {
+  document.getElementById('catalog-list').innerHTML = renderCatalog();
+  document.getElementById('center-panel').innerHTML = renderAssigned();
+  document.getElementById('config-panel').innerHTML = renderConfig();
+  setupDrag();
+}
+
+function setParam(skillId, section, key, value) {
+  if (!S.assigned[skillId]) return;
+  S.assigned[skillId][section][key] = value;
+  document.getElementById('config-panel').innerHTML = renderConfig();
+}
+function toggleMulti(skillId, section, key, option) {
+  if (!S.assigned[skillId]) return;
+  let arr = S.assigned[skillId][section][key];
+  if (!Array.isArray(arr)) arr = [...(S.skills.find(t=>t.id===skillId)?.[section]?.[key]?.default || [])];
+  arr = arr.includes(option) ? arr.filter(x => x !== option) : [...arr, option];
+  S.assigned[skillId][section][key] = arr;
+  document.getElementById('config-panel').innerHTML = renderConfig();
+}
+
+/* ═══════════════════════ BUILDER STEP 2: AGENT CONFIG ═══════════════════════ */
+function renderBuilderStep2(app) {
+  const assignedIds = Object.keys(S.assigned);
+  const skillChips = assignedIds.map(id => {
+    const t = S.skills.find(x => x.id === id); if (!t) return '';
+    return `<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);font-size:13px">
+      <span>${t.icon}</span><span style="font-weight:600">${esc(t.name)}</span><span class="sk-badge ${t.type}" style="margin-left:2px">${t.type}</span></div>`;
+  }).join('');
+
+  app.innerHTML = `<div class="single-panel"><div class="single-content">
+    <h2 style="margin-bottom:24px;font-size:22px">Agent Configuration</h2>
+    <div class="card">
+      <h3>Assigned Skills (${assignedIds.length})</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${skillChips}</div>
+    </div>
+    <div class="card">
+      <h3>Agent Settings</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="form-group"><label class="form-label">Agent Name *</label>
+          <input class="form-input" id="cfg-name" value="${esc(S.agentName)}" placeholder="e.g. my-weather-bot" maxlength="100" oninput="checkStep2Ready()"></div>
+        <div class="form-group"><label class="form-label">Model</label>
+          <select class="form-select" id="cfg-model" onchange="S.agentModel=this.value">
+            ${['gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4o','gpt-4o-mini'].map(m => `<option value="${m}" ${m===S.agentModel?'selected':''}>${m}</option>`).join('')}
+          </select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Instructions *</label>
+        <textarea class="form-textarea" id="cfg-instructions" rows="5" placeholder="You are a helpful assistant that..."
+          oninput="checkStep2Ready()">${esc(S.instructions)}</textarea>
+        <div class="form-hint">Tell the agent its role, boundaries, and how to use its skills.</div></div>
+    </div>
+    <div class="actions-bar">
+      <button class="btn" onclick="goStep(1)">&larr; Back to Skills</button>
+      <button class="btn btn-primary" id="deploy-btn" onclick="goStep(3)" disabled>Review &amp; Deploy &rarr;</button>
+    </div>
+  </div></div>`;
+  checkStep2Ready();
+}
+
+function checkStep2Ready() {
+  const n = (_val('cfg-name') || '').trim();
+  const i = (_val('cfg-instructions') || '').trim();
+  const btn = document.getElementById('deploy-btn');
+  if (btn) btn.disabled = !n || !i;
+}
+
+/* ═══════════════════════ BUILDER STEP 3: REVIEW ═══════════════════════ */
+function renderBuilderStep3Review(app) {
+  const assignedIds = Object.keys(S.assigned);
+
+  // Build per-skill detail cards
+  const skillCards = assignedIds.map(id => {
+    const t = S.skills.find(x => x.id === id); if (!t) return '';
+    const dp = t.deploy_params || {};
+    const rp = t.runtime_params || {};
+    const assignedDp = S.assigned[id].deploy_params || {};
+    const assignedRp = S.assigned[id].runtime_params || {};
+
+    const renderParams = (params, stored) => Object.entries(params).map(([k, p]) => {
+      if (p.show_if) {
+        const [ck,cv] = Object.entries(p.show_if)[0];
+        const curVal = stored[ck] ?? params[ck]?.default ?? '';
+        if (curVal !== cv) return '';
+      }
+      const val = stored[k] !== undefined ? stored[k] : (p.default ?? '');
+      const display = Array.isArray(val) ? val.join(', ') : (val || '(empty)');
+      return `<div class="summary-row"><span class="summary-label">${esc(p.label)}</span><span class="summary-value" style="font-family:var(--mono);font-size:12px">${esc(display)}</span></div>`;
+    }).join('');
+
+    const dpHtml = renderParams(dp, assignedDp);
+    const rpHtml = renderParams(rp, assignedRp);
+
+    return `<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:20px">${t.icon}</span>
+        <div><strong style="font-size:14px">${esc(t.name)}</strong>
+        <span class="sk-badge ${t.type}" style="margin-left:8px">${t.type}</span></div>
+      </div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">${esc(t.description)}</div>
+      ${dpHtml ? `<div class="config-section-label" style="margin-top:8px">Deploy Configuration</div>${dpHtml}` : ''}
+      ${rpHtml ? `<div class="config-section-label">Runtime Preferences</div>${rpHtml}` : ''}
+      ${!dpHtml && !rpHtml ? '<div style="font-size:12px;color:var(--text-muted)">No parameters configured.</div>' : ''}
+    </div>`;
+  }).join('');
+
+  // Instructions preview (truncated)
+  const instrPreview = S.instructions.length > 300 ? S.instructions.substring(0, 300) + '...' : S.instructions;
+
+  app.innerHTML = `<div class="single-panel"><div class="single-content" style="max-width:780px">
+    <h2 style="margin-bottom:24px;font-size:22px">Review Agent</h2>
+    <p style="color:var(--text-secondary);margin-bottom:24px">Review the agent configuration before deploying to Azure AI Foundry.</p>
+
+    <!-- Agent Summary -->
+    <div class="card">
+      <h3>Agent Details</h3>
+      <div class="summary-row"><span class="summary-label">Name</span><span class="summary-value"><strong>${esc(S.agentName)}</strong></span></div>
+      <div class="summary-row"><span class="summary-label">Model</span><span class="summary-value" style="font-family:var(--mono);font-size:12px">${esc(S.agentModel)}</span></div>
+      <div class="summary-row"><span class="summary-label">Skills</span><span class="summary-value">${assignedIds.length} assigned</span></div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="card">
+      <h3>Instructions</h3>
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--text-secondary);white-space:pre-wrap;max-height:200px;overflow-y:auto">${esc(instrPreview)}</div>
+    </div>
+
+    <!-- Skills -->
+    <div style="margin-bottom:16px">
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:14px">Assigned Skills (${assignedIds.length})</h3>
+      ${skillCards}
+    </div>
+
+    <div class="actions-bar" style="margin-bottom:40px">
+      <button class="btn" onclick="goStep(2)">&larr; Back to Configure</button>
+      <button class="btn btn-primary" onclick="goStep(4)">Deploy to Azure AI Foundry &rarr;</button>
+    </div>
+  </div></div>`;
+}
+
+/* ═══════════════════════ BUILDER STEP 4: DEPLOY ═══════════════════════ */
+function renderBuilderStep4Deploy(app) {
+  app.innerHTML = `<div class="single-panel"><div class="single-content">
+    <div class="deploy-spinner"><div class="spinner"></div><p style="color:var(--text-secondary)">Deploying <strong>${esc(S.agentName)}</strong> to Azure AI Foundry...</p>
+    <p style="color:var(--text-muted);font-size:12px;margin-top:8px">Creating agent definition, configuring skills, publishing version...</p></div>
+  </div></div>`;
+
+  setTimeout(() => {
+    const rid = 'asst_' + Math.random().toString(36).substring(2,14);
+    S.deployedAgent = { name:S.agentName, id:rid, version:1 };
+    app.innerHTML = `<div class="single-panel"><div class="single-content">
+      <div class="deploy-success">
+        <div class="check">\u2713</div>
+        <h2 style="margin-bottom:4px">${esc(S.agentName)}</h2>
+        <p style="color:var(--text-muted);font-family:var(--mono);font-size:12px;margin-bottom:24px">v1 \u00b7 ${rid}</p>
+        <p style="color:var(--text-secondary);margin-bottom:32px">Agent deployed successfully with ${Object.keys(S.assigned).length} skill(s).</p>
+        <button class="btn btn-primary" onclick="goStep(5)">Start Chatting &rarr;</button>
+      </div>
+    </div></div>`;
+    renderStepPills();
+  }, 2200);
+}
+
+/* ═══════════════════════ BUILDER STEP 5: CHAT ═══════════════════════ */
+function renderBuilderStep5Chat(app) {
+  const a = S.deployedAgent || {};
+  app.innerHTML = `<div class="chat-layout">
+    <div class="chat-header">
+      <div><h2>${esc(a.name || S.agentName)}</h2><div class="meta">${a.version ? 'v'+a.version+' \u00b7 ' : ''}${a.id || ''}</div></div>
+      <span class="tag" style="background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)">Deployed</span>
+    </div>
+    <div class="chat-messages" id="chat-msgs">
+      ${S.chat.length === 0 ? '<div class="empty-state" style="padding:60px 20px"><p>Send a message to start chatting with your agent.</p></div>' : S.chat.map(renderMsg).join('')}
+    </div>
+    <div class="chat-input-bar">
+      <input type="text" id="chat-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMsg()">
+      <button class="btn btn-primary" onclick="sendMsg()" id="chat-send">Send</button>
+    </div>
+    <div class="chat-actions">
+      <button class="btn btn-sm" onclick="switchView('builder')">Update Agent</button>
+      <button class="btn btn-sm btn-danger" onclick="showDeleteAgentModal()">Delete Agent</button>
+      <button class="btn btn-sm" onclick="switchView('builder')">New Agent</button>
+    </div>
+  </div>`;
+  const msgs = document.getElementById('chat-msgs');
+  msgs.scrollTop = msgs.scrollHeight;
+  document.getElementById('chat-input').focus();
+}
+
+function renderMsg(m) {
+  let html = `<div class="chat-bubble ${m.role}">`;
+  if (m.toolCalls?.length) html += m.toolCalls.map(t => `<span class="tool-badge">${esc(t)}</span>`).join('');
+  html += m.role === 'assistant' ? DOMPurify.sanitize(marked.parse(m.content || '')) : esc(m.content);
+  html += '</div>';
+  return html;
+}
+
+function sendMsg() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  S.chat.push({ role:'user', content:msg });
+  input.value = '';
+  document.getElementById('chat-send').disabled = true;
+  renderChatMsgs();
+  const msgs = document.getElementById('chat-msgs');
+  const typing = document.createElement('div');
+  typing.className = 'chat-bubble assistant';
+  typing.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span>';
+  msgs.appendChild(typing);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  setTimeout(() => {
+    const resp = getMockResponse(msg);
+    S.chat.push({ role:'assistant', content:resp.text, toolCalls:resp.tool_calls });
+    document.getElementById('chat-send').disabled = false;
+    renderChatMsgs();
+    document.getElementById('chat-input').focus();
+  }, 1200 + Math.random() * 800);
+}
+
+function renderChatMsgs() {
+  const msgs = document.getElementById('chat-msgs');
+  if (!msgs) return;
+  msgs.innerHTML = S.chat.map(renderMsg).join('');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function getMockResponse(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes('weather')) return { text:"Based on the Weather API data:\n\n**Seattle, WA**\n| Metric | Value |\n|--------|-------|\n| Temperature | 58\u00b0F (14\u00b0C) |\n| Conditions | Partly Cloudy \u26C5 |\n| Humidity | 72% |\n| Wind | 8 mph NW |\n\nWould you like weather for another city?", tool_calls:['getWeather'] };
+  if (m.includes('currency') || m.includes('convert')) return { text:"Here's the conversion result:\n\n**100 USD \u2192 91.25 EUR**\n\n- Exchange Rate: 0.9125\n- Last updated: 2 minutes ago\n\nThe Euro has strengthened by **0.3%** against the dollar today.", tool_calls:['convertCurrency'] };
+  if (m.includes('hello') || m.includes('hi') || m.includes('hey')) return { text:"Hello! I'm your AI assistant. I have access to these skills:\n\n"+Object.keys(S.assigned).map(id=>{const t=S.skills.find(x=>x.id===id); return t ? `- **${t.name}** \u2014 ${t.description}` : '';}).join('\n')+"\n\nWhat can I help you with?", tool_calls:[] };
+  if (m.includes('code') || m.includes('python') || m.includes('calculate')) return { text:"Here's the analysis:\n\n```python\nimport numpy as np\n\ndata = [23, 45, 67, 89, 12, 34, 56, 78]\nmean = np.mean(data)\nstd = np.std(data)\n\nprint(f'Mean: {mean:.2f}')\nprint(f'Std Dev: {std:.2f}')\n```\n\n**Results:**\n- Mean: **50.50**\n- Standard Deviation: **25.03**\n\nThe data shows moderate variance. Want me to create a visualization?", tool_calls:['code_interpreter'] };
+  if (m.includes('document') || m.includes('ocr') || m.includes('pdf')) return { text:"I've processed the document. Here's what I extracted:\n\n### Key-Value Pairs\n| Field | Value |\n|-------|-------|\n| Invoice # | INV-2024-0842 |\n| Date | Feb 8, 2026 |\n| Total | $1,247.50 |\n| Vendor | Acme Corp |\n\n### Tables Found\n1 table with 5 rows detected. Would you like the full table data?", tool_calls:['analyzeDocument'] };
+  return { text:"I've processed your request. Here's a summary:\n\n> Your query has been analyzed and the results look promising.\n\nLet me know if you'd like me to:\n1. **Dig deeper** into any specific aspect\n2. **Run additional analysis** with different parameters\n3. **Export the results** in a specific format", tool_calls:['code_interpreter'] };
+}
+
+function showDeleteAgentModal() {
+  const root = document.getElementById('modal-root');
+  root.classList.remove('hidden');
+  root.innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>Delete Agent</h3>
+      <p style="color:var(--text-secondary);margin-bottom:4px">Are you sure you want to delete <strong>${esc(S.deployedAgent?.name || S.agentName)}</strong>?</p>
+      <p style="color:var(--text-muted);font-size:13px">This will remove all versions from Azure AI Foundry.</p>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="closeModal();switchView('agents')">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════ UTILITIES ═══════════════════════ */
+function esc(s) { if (s == null) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+function _val(id) { const el = document.getElementById(id); return el ? el.value : null; }
+</script>
+</body>
+</html>
