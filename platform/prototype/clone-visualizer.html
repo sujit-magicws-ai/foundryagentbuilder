@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Contractor Clone Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#09090b; --surface:#111113; --surface-2:#18181b; --surface-3:#222225;
+  --border:#27272a; --border-light:#3f3f46;
+  --text:#fafafa; --text-2:#a1a1aa; --text-3:#63637a;
+  --primary:#7c5cfc; --primary-bg:rgba(124,92,252,.08);
+  --accent:#2dd4a8; --accent-bg:rgba(45,212,168,.1); --accent-border:rgba(45,212,168,.3);
+  --amber:#f59e0b; --amber-bg:rgba(245,158,11,.1); --amber-border:rgba(245,158,11,.3);
+  --danger:#ef4444; --danger-bg:rgba(239,68,68,.1);
+  --font:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* ═══ Header ═══ */
+.header{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:20px;flex-shrink:0}
+.header-brand{font-weight:800;font-size:15px;letter-spacing:-.3px}
+.header-brand span{color:var(--primary)}
+.header-agent{font-size:12px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);padding:4px 12px;border-radius:6px;display:flex;align-items:center;gap:6px}
+.header-agent .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.header-spacer{flex:1}
+.header-controls{display:flex;gap:8px;align-items:center}
+.btn{padding:7px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);transition:all .15s;font-family:var(--font)}
+.btn:hover{color:var(--text);background:var(--surface-3)}
+.btn-accent{background:var(--accent);color:#000;border-color:var(--accent)}
+.btn-accent:hover{background:#34e0b2}
+.btn-danger{background:var(--danger-bg);color:var(--danger);border-color:rgba(239,68,68,.3)}
+.btn-sm{padding:5px 12px;font-size:11px}
+
+/* ═══ Main Layout ═══ */
+.main{flex:1;display:grid;grid-template-columns:1fr 360px;overflow:hidden}
+
+/* ═══ Left: Clone Arena ═══ */
+.arena{padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:20px}
+.arena-header{display:flex;align-items:center;justify-content:space-between}
+.arena-title{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.arena-subtitle{font-size:12px;color:var(--text-3)}
+
+/* ═══ Metrics Bar ═══ */
+.metrics{display:flex;gap:12px;flex-wrap:wrap}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:130px;text-align:center}
+.metric-val{font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1}
+.metric-val.queue{color:var(--amber)}
+.metric-val.clones{color:var(--accent)}
+.metric-val.processed{color:var(--primary)}
+.metric-val.danger{color:var(--danger)}
+.metric-label{font-size:10px;color:var(--text-3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+
+/* ═══ Clone Cards ═══ */
+.clones-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.clone-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden;transition:border-color .2s}
+.clone-card.active{border-color:var(--accent-border)}
+.clone-card.spawning{animation:spawnIn .6s ease-out}
+.clone-card.terminating{animation:spawnOut .4s ease-in forwards}
+@keyframes cloneIn{from{opacity:0;transform:scale(.9) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes spawnIn{0%{opacity:0;transform:scale(.3);border-color:var(--amber)}50%{border-color:var(--accent)}100%{opacity:1;transform:scale(1)}}
+@keyframes spawnOut{to{opacity:0;transform:scale(.8);filter:grayscale(1)}}
+.clone-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#000;margin-bottom:10px}
+.clone-name{font-weight:700;font-size:14px;margin-bottom:2px}
+.clone-status{font-size:11px;color:var(--text-3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.clone-status .status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.status-dot.idle{background:var(--text-3)}
+.status-dot.working{background:var(--accent);animation:pulse 1.5s infinite}
+.status-dot.new{background:var(--amber);animation:pulse 1s infinite}
+.clone-claim{background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text-2);line-height:1.4}
+.clone-claim strong{color:var(--text);font-weight:600}
+.clone-claim .claim-id{font-family:var(--mono);font-size:10px;color:var(--amber)}
+.clone-progress{height:3px;background:var(--surface-3);border-radius:2px;margin-top:8px;overflow:hidden}
+.clone-progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .3s linear}
+.clone-persona-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;position:absolute;top:10px;right:10px}
+.persona-tone{color:var(--text-3);font-size:10px;font-style:italic;margin-top:4px}
+
+/* ═══ Scaling Event Log ═══ */
+.scale-event{background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);display:flex;align-items:center;gap:8px}
+.scale-event.scale-down{background:var(--danger-bg);border-color:rgba(239,68,68,.3);color:var(--danger)}
+.scale-event .event-icon{font-size:16px}
+.scale-event .event-time{font-family:var(--mono);font-size:10px;opacity:.7;margin-left:auto}
+
+/* ═══ Right Panel: Claim Queue ═══ */
+.queue-panel{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.queue-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.queue-head h3{font-size:14px;font-weight:700}
+.queue-count{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:10px;background:var(--amber-bg);color:var(--amber)}
+.queue-body{flex:1;overflow-y:auto;padding:12px}
+.queue-item{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px;transition:all .3s}
+.queue-item.processing{border-color:var(--accent-border);background:var(--accent-bg)}
+.queue-item.done{opacity:.4;border-color:var(--border)}
+.queue-item .qi-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.queue-item .qi-id{font-family:var(--mono);font-weight:600;font-size:11px}
+.queue-item .qi-badge{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:4px}
+.qi-badge.pending{background:var(--amber-bg);color:var(--amber)}
+.qi-badge.active{background:var(--accent-bg);color:var(--accent)}
+.qi-badge.complete{background:var(--surface-3);color:var(--text-3)}
+.queue-item .qi-desc{color:var(--text-3);line-height:1.3}
+.queue-item .qi-assignee{font-family:var(--mono);font-size:10px;color:var(--accent);margin-top:4px}
+
+/* ═══ Queue Controls ═══ */
+.queue-controls{padding:12px 20px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.queue-controls label{font-family:var(--mono);font-size:10px;color:var(--text-3);letter-spacing:1px;text-transform:uppercase}
+.claim-input{display:flex;gap:6px}
+.claim-input input{flex:1;padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:12px;outline:none}
+.claim-input input:focus{border-color:var(--primary)}
+.claim-input input::placeholder{color:var(--text-3)}
+
+/* ═══ Rule Display ═══ */
+.rule-box{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--text-2);line-height:1.5}
+.rule-box code{font-family:var(--mono);color:var(--amber);font-size:11px}
+.rule-box .rule-arrow{color:var(--accent);font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand"><span>Clone</span> Visualizer</div>
+  <div class="header-agent"><span class="dot"></span> Claims Document Analyst</div>
+  <div class="header-spacer"></div>
+  <div class="header-controls">
+    <button class="btn btn-sm" onclick="addClaim()">+ Add Claim</button>
+    <button class="btn btn-sm btn-accent" id="sim-btn" onclick="toggleSim()">Start Simulation</button>
+    <button class="btn btn-sm btn-danger" onclick="resetAll()">Reset</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="arena" id="arena">
+    <div>
+      <div class="arena-header">
+        <div>
+          <div class="arena-title">Active AI Contractors</div>
+          <div class="arena-subtitle">Clones scale based on queue depth. Threshold: 3 claims per clone.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics" id="metrics"></div>
+
+    <div class="rule-box">
+      <strong>Scaling Rule:</strong>
+      <code>required_clones = ceil(queue_depth / 3)</code> &mdash;
+      Queue &le; 3 <span class="rule-arrow">&rarr;</span> 1 clone (Alice) &nbsp;|&nbsp;
+      Queue &gt; 3 <span class="rule-arrow">&rarr;</span> +Bob &nbsp;|&nbsp;
+      Queue &gt; 6 <span class="rule-arrow">&rarr;</span> +Priya &nbsp;|&nbsp;
+      Queue &gt; 9 <span class="rule-arrow">&rarr;</span> +David &nbsp;|&nbsp;
+      Queue &gt; 12 <span class="rule-arrow">&rarr;</span> +Mei
+    </div>
+
+    <div id="events"></div>
+    <div class="clones-grid" id="clones-grid"></div>
+  </div>
+
+  <div class="queue-panel">
+    <div class="queue-head">
+      <h3>Claim Queue</h3>
+      <span class="queue-count" id="queue-count">0 pending</span>
+    </div>
+    <div class="queue-body" id="queue-body"></div>
+    <div class="queue-controls">
+      <label>Manual Claim Entry</label>
+      <div class="claim-input">
+        <input id="claim-desc" placeholder="e.g. Rear-end collision on I-35..." onkeydown="if(event.key==='Enter')addClaim()">
+        <button class="btn btn-sm" onclick="addClaim()">Add</button>
+      </div>
+      <label style="margin-top:8px">Auto-Feed Controls</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-sm" onclick="burstClaims(5)">+5 Burst</button>
+        <button class="btn btn-sm" onclick="burstClaims(10)">+10 Surge</button>
+        <button class="btn btn-sm btn-danger" onclick="drainQueue()">Drain Queue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════ PERSONA REGISTRY ═══════════ */
+const PERSONAS = [
+  { name:'Alice Chen', short:'Alice', color:'#2dd4a8', tone:'Professional, structured, uses tables', avatar:'AC' },
+  { name:'Bob Rivera', short:'Bob', color:'#7c5cfc', tone:'Warm, conversational, reassuring', avatar:'BR' },
+  { name:'Priya Sharma', short:'Priya', color:'#f59e0b', tone:'Direct, analytical, data-focused', avatar:'PS' },
+  { name:'David Okafor', short:'David', color:'#38bdf8', tone:'Empathetic, detailed, step-by-step', avatar:'DO' },
+  { name:'Mei Zhang', short:'Mei', color:'#c084fc', tone:'Concise, efficient, action-oriented', avatar:'MZ' },
+];
+
+const SAMPLE_CLAIMS = [
+  'Rear-end collision at Main St & 5th Ave. 2022 Honda Civic. Bumper cracked.',
+  'Hail damage in DFW area. 2023 Toyota Camry. Multiple dents on hood and roof.',
+  'Side-impact at intersection. 2021 Ford Explorer. Driver door crushed, airbag deployed.',
+  'Parking lot fender bender. 2024 Tesla Model 3. Minor scratch on front bumper.',
+  'Hit deer on Highway 287. 2020 Chevy Silverado. Front-end damage, grille broken.',
+  'Windshield cracked by road debris. 2022 Subaru Outback. Glass-only claim.',
+  'Multi-vehicle pileup on I-35. 2019 BMW 3-Series. Extensive front and rear damage.',
+  'Theft + vandalism. 2023 Hyundai Elantra. Window smashed, stereo stolen.',
+  'Flood damage from storm surge. 2021 Nissan Altima. Interior waterlogged.',
+  'Rear-ended at stoplight. 2024 Kia Sportage. Taillight and trunk lid damaged.',
+  'T-bone collision at red light. 2020 Honda Accord. Passenger side impact.',
+  'Rollover on icy road. 2022 Jeep Wrangler. Roof and frame damage.',
+  'Shopping cart damage in parking lot. 2023 Mercedes C-Class. Door dent.',
+  'Uninsured motorist hit-and-run. 2021 VW Jetta. Front fender crumpled.',
+  'Garage door fell on car. 2024 Mazda CX-5. Hood and windshield damage.',
+];
+
+/* ═══════════ STATE ═══════════ */
+let claimSeq = 1000;
+const S = {
+  clones: [],       // { persona, status:'idle'|'working', claimId:null, progress:0, spawnTime }
+  queue: [],        // { id, desc, status:'pending'|'processing'|'done', assignee:null }
+  processed: 0,
+  events: [],       // { text, type:'up'|'down', time }
+  simRunning: false,
+  simInterval: null,
+  tickInterval: null,
+};
+
+/* ═══════════ INIT ═══════════ */
+spawnClone(0);  // Alice always starts
+startTick();
+renderAll();
+
+/* ═══════════ CORE LOGIC ═══════════ */
+function getPendingCount() { return S.queue.filter(c => c.status === 'pending').length; }
+function getProcessingCount() { return S.queue.filter(c => c.status === 'processing').length; }
+
+function evaluateScaling() {
+  const pending = getPendingCount();
+  const processing = getProcessingCount();
+  const totalActive = pending + processing;
+  const required = Math.max(1, Math.ceil(totalActive / 3));
+  const capped = Math.min(required, PERSONAS.length);
+
+  if (capped > S.clones.length) {
+    for (let i = S.clones.length; i < capped; i++) spawnClone(i);
+  } else if (capped < S.clones.length && pending === 0) {
+    while (S.clones.length > capped && S.clones.length > 1) {
+      const last = S.clones[S.clones.length - 1];
+      if (last.status === 'working') break;
+      terminateClone();
+    }
+  }
+}
+
+function spawnClone(personaIdx) {
+  if (personaIdx >= PERSONAS.length) return;
+  if (S.clones.find(c => c.persona.name === PERSONAS[personaIdx].name)) return;
+  const clone = { persona: PERSONAS[personaIdx], status:'idle', claimId:null, progress:0, spawnTime:Date.now(), isNew:true };
+  S.clones.push(clone);
+  addEvent(`${clone.persona.short} spawned (${S.clones.length} active clones)`, 'up');
+  setTimeout(() => { clone.isNew = false; renderClones(); }, 600);
+  renderAll();
+}
+
+function terminateClone() {
+  if (S.clones.length <= 1) return;
+  const last = S.clones.pop();
+  addEvent(`${last.persona.short} terminated (${S.clones.length} active clones)`, 'down');
+  renderAll();
+}
+
+function assignWork() {
+  const idle = S.clones.filter(c => c.status === 'idle');
+  const pending = S.queue.filter(c => c.status === 'pending');
+  for (const clone of idle) {
+    const claim = pending.shift();
+    if (!claim) break;
+    clone.status = 'working';
+    clone.claimId = claim.id;
+    clone.progress = 0;
+    claim.status = 'processing';
+    claim.assignee = clone.persona.short;
+  }
+}
+
+function tick() {
+  // Progress working clones
+  for (const clone of S.clones) {
+    if (clone.status === 'working') {
+      clone.progress += 8 + Math.random() * 12;
+      if (clone.progress >= 100) {
+        const claim = S.queue.find(c => c.id === clone.claimId);
+        if (claim) claim.status = 'done';
+        clone.status = 'idle';
+        clone.claimId = null;
+        clone.progress = 0;
+        S.processed++;
+      }
+    }
+  }
+  assignWork();
+  evaluateScaling();
+  renderAll();
+}
+
+function startTick() {
+  if (S.tickInterval) clearInterval(S.tickInterval);
+  S.tickInterval = setInterval(tick, 500);
+}
+
+/* ═══════════ CLAIM MANAGEMENT ═══════════ */
+function addClaim(desc) {
+  const id = 'CLM-' + (++claimSeq);
+  const text = desc || document.getElementById('claim-desc').value.trim() || SAMPLE_CLAIMS[Math.floor(Math.random() * SAMPLE_CLAIMS.length)];
+  S.queue.unshift({ id, desc:text, status:'pending', assignee:null });
+  document.getElementById('claim-desc').value = '';
+  evaluateScaling();
+  assignWork();
+  renderAll();
+}
+
+function burstClaims(n) {
+  for (let i = 0; i < n; i++) {
+    setTimeout(() => addClaim(), i * 200);
+  }
+}
+
+function drainQueue() {
+  S.queue = S.queue.filter(c => c.status === 'processing');
+  evaluateScaling();
+  renderAll();
+}
+
+function resetAll() {
+  stopSim();
+  S.clones = [];
+  S.queue = [];
+  S.processed = 0;
+  S.events = [];
+  claimSeq = 1000;
+  spawnClone(0);
+  renderAll();
+}
+
+/* ═══════════ SIMULATION ═══════════ */
+function toggleSim() {
+  S.simRunning ? stopSim() : startSim();
+}
+
+function startSim() {
+  S.simRunning = true;
+  document.getElementById('sim-btn').textContent = 'Stop Simulation';
+  document.getElementById('sim-btn').classList.add('btn-danger');
+  document.getElementById('sim-btn').classList.remove('btn-accent');
+  S.simInterval = setInterval(() => {
+    const burst = Math.random();
+    if (burst > 0.7) { addClaim(); addClaim(); }
+    else addClaim();
+  }, 1500 + Math.random() * 1000);
+}
+
+function stopSim() {
+  S.simRunning = false;
+  document.getElementById('sim-btn').textContent = 'Start Simulation';
+  document.getElementById('sim-btn').classList.remove('btn-danger');
+  document.getElementById('sim-btn').classList.add('btn-accent');
+  if (S.simInterval) { clearInterval(S.simInterval); S.simInterval = null; }
+}
+
+/* ═══════════ EVENTS ═══════════ */
+function addEvent(text, type) {
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  S.events.unshift({ text, type, time });
+  if (S.events.length > 8) S.events.pop();
+}
+
+/* ═══════════ RENDERING ═══════════ */
+
+/* Snapshots to detect structural changes — only rebuild DOM when needed */
+let _prevCloneKeys = '';
+let _prevQueueKeys = '';
+let _prevEventKeys = '';
+
+function renderAll() {
+  renderMetrics();
+  renderClones();
+  renderQueue();
+  renderEvents();
+}
+
+function renderMetrics() {
+  const pending = getPendingCount();
+  const required = Math.max(1, Math.ceil((pending + getProcessingCount()) / 3));
+  const el = document.getElementById('metrics');
+  /* Build metrics DOM once, then update text only */
+  if (!el.children.length) {
+    el.innerHTML = `
+      <div class="metric"><div class="metric-val queue" id="m-queue">0</div><div class="metric-label">Queue Depth</div></div>
+      <div class="metric"><div class="metric-val clones" id="m-clones">0</div><div class="metric-label">Active Clones</div></div>
+      <div class="metric"><div class="metric-val processed" id="m-processed">0</div><div class="metric-label">Processed</div></div>
+      <div class="metric"><div class="metric-val" id="m-required">0</div><div class="metric-label">Required Clones</div></div>
+    `;
+  }
+  document.getElementById('m-queue').textContent = pending;
+  document.getElementById('m-clones').textContent = S.clones.length;
+  document.getElementById('m-processed').textContent = S.processed;
+  const reqEl = document.getElementById('m-required');
+  reqEl.textContent = required;
+  reqEl.className = 'metric-val' + (pending > 9 ? ' danger' : '');
+}
+
+function cloneCardHTML(c) {
+  const p = c.persona;
+  return `<span class="clone-persona-tag" style="background:${p.color}22;color:${p.color};border:1px solid ${p.color}44">${p.avatar}</span>
+    <div class="clone-avatar" style="background:${p.color}">${p.avatar}</div>
+    <div class="clone-name">${p.name}</div>
+    <div class="clone-status"><span class="status-dot idle" data-role="dot"></span><span data-role="status-text">Idle — waiting for claims</span></div>
+    <div class="persona-tone">"${p.tone}"</div>
+    <div class="clone-claim" data-role="claim" style="opacity:.4;text-align:center">No active claim</div>
+    <div class="clone-progress" data-role="progress-wrap" style="display:none"><div class="clone-progress-bar" data-role="progress-bar" style="width:0%"></div></div>`;
+}
+
+function updateCloneCard(card, c) {
+  const dot = card.querySelector('[data-role="dot"]');
+  const statusText = card.querySelector('[data-role="status-text"]');
+  const claimEl = card.querySelector('[data-role="claim"]');
+  const progressWrap = card.querySelector('[data-role="progress-wrap"]');
+  const progressBar = card.querySelector('[data-role="progress-bar"]');
+
+  /* Update card border */
+  card.classList.toggle('active', c.status === 'working');
+
+  /* Status dot */
+  const dotCls = c.status === 'working' ? 'working' : c.isNew ? 'new' : 'idle';
+  dot.className = 'status-dot ' + dotCls;
+  statusText.textContent = c.status === 'working' ? 'Processing' : 'Idle — waiting for claims';
+
+  /* Claim info */
+  const claim = c.claimId ? S.queue.find(q => q.id === c.claimId) : null;
+  if (claim) {
+    claimEl.style.opacity = '1';
+    claimEl.style.textAlign = '';
+    claimEl.innerHTML = `<span class="claim-id">${claim.id}</span><br><strong>${claim.desc.substring(0, 60)}${claim.desc.length > 60 ? '...' : ''}</strong>`;
+    progressWrap.style.display = '';
+    progressBar.style.width = Math.min(c.progress, 100) + '%';
+  } else {
+    claimEl.style.opacity = '.4';
+    claimEl.style.textAlign = 'center';
+    claimEl.textContent = 'No active claim';
+    progressWrap.style.display = 'none';
+  }
+}
+
+function renderClones() {
+  const el = document.getElementById('clones-grid');
+  const key = S.clones.map(c => c.persona.name).join(',');
+
+  if (key !== _prevCloneKeys) {
+    /* Structure changed — rebuild cards */
+    _prevCloneKeys = key;
+    el.innerHTML = '';
+    S.clones.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'clone-card' + (c.isNew ? ' spawning' : '');
+      card.dataset.persona = c.persona.name;
+      card.innerHTML = cloneCardHTML(c);
+      el.appendChild(card);
+    });
+  }
+
+  /* Update each card's dynamic content */
+  S.clones.forEach(c => {
+    const card = el.querySelector(`[data-persona="${c.persona.name}"]`);
+    if (card) {
+      card.classList.remove('spawning'); /* remove after first render */
+      updateCloneCard(card, c);
+    }
+  });
+}
+
+function renderQueue() {
+  const pending = getPendingCount();
+  document.getElementById('queue-count').textContent = `${pending} pending`;
+  const el = document.getElementById('queue-body');
+  const items = S.queue.slice(0, 30);
+  const key = items.map(c => c.id + ':' + c.status).join(',');
+
+  if (key !== _prevQueueKeys) {
+    _prevQueueKeys = key;
+    el.innerHTML = items.map(c => {
+      const badgeCls = c.status === 'pending' ? 'pending' : c.status === 'processing' ? 'active' : 'complete';
+      const label = c.status === 'pending' ? 'QUEUED' : c.status === 'processing' ? 'PROCESSING' : 'DONE';
+      const itemCls = c.status === 'processing' ? 'processing' : c.status === 'done' ? 'done' : '';
+      return `<div class="queue-item ${itemCls}">
+        <div class="qi-top">
+          <span class="qi-id">${c.id}</span>
+          <span class="qi-badge ${badgeCls}">${label}</span>
+        </div>
+        <div class="qi-desc">${c.desc.substring(0, 80)}${c.desc.length > 80 ? '...' : ''}</div>
+        ${c.assignee ? `<div class="qi-assignee">Assigned to ${c.assignee}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderEvents() {
+  const el = document.getElementById('events');
+  const key = S.events.map(e => e.time + e.text).join('|');
+  if (key !== _prevEventKeys) {
+    _prevEventKeys = key;
+    el.innerHTML = S.events.map(e => {
+      const cls = e.type === 'down' ? 'scale-down' : '';
+      const icon = e.type === 'up' ? '\u2B06' : '\u2B07';
+      return `<div class="scale-event ${cls}"><span class="event-icon">${icon}</span>${e.text}<span class="event-time">${e.time}</span></div>`;
+    }).join('');
+  }
+}
+</script>
+</body>
+</html>

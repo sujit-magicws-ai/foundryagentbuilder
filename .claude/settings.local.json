@@ -14,7 +14,30 @@
       "WebFetch(domain:www.strathweb.com)",
       "Bash(\".venv/Scripts/python.exe\":*)",
       "WebFetch(domain:github.com)",
-      "Bash(ls -la \"C:\\\\Users\\\\SujitSarkar\\\\OneDrive - pursuit software development pvt. ltd\\\\CODE\\\\FOUNDRYSKILL\\\\platform\\\\backend\"\" && echo \"---\" && ls -la \"C:UsersSujitSarkarOneDrive - pursuit software development pvt. ltdCODEFOUNDRYSKILLplatformfrontend\"\")"
+      "Bash(ls -la \"C:\\\\Users\\\\SujitSarkar\\\\OneDrive - pursuit software development pvt. ltd\\\\CODE\\\\FOUNDRYSKILL\\\\platform\\\\backend\"\" && echo \"---\" && ls -la \"C:UsersSujitSarkarOneDrive - pursuit software development pvt. ltdCODEFOUNDRYSKILLplatformfrontend\"\")",
+      "Bash(dir:*)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(timeout:*)",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(python:*)",
+      "Bash(findstr:*)",
+      "Bash(az webapp log download:*)",
+      "Bash(start:*)",
+      "WebFetch(domain:blog.langchain.com)",
+      "WebFetch(domain:techcommunity.microsoft.com)",
+      "WebFetch(domain:www.blueprintsys.com)",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:www.zackliscio.com)",
+      "WebFetch(domain:ppc.land)",
+      "WebFetch(domain:ragnarheil.de)",
+      "WebFetch(domain:community.n8n.io)",
+      "WebFetch(domain:thenewstack.io)",
+      "WebFetch(domain:xenoss.io)",
+      "WebFetch(domain:www.salesforceben.com)",
+      "WebFetch(domain:news.ycombinator.com)",
+      "WebFetch(domain:pdfazuredocaitest.blob.core.windows.net)"
     ]
   }
 }

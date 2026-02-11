@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industry Report: Visual Agent Workflow Builders vs Code — An Honest Assessment</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fafafa; --surface: #ffffff; --surface-2: #f4f4f5; --surface-3: #e4e4e7;
+  --border: #d4d4d8; --border-light: #a1a1aa;
+  --text: #18181b; --text-secondary: #3f3f46; --text-muted: #71717a;
+  --primary: #6d4ced; --primary-bg: rgba(109,76,237,.07); --primary-border: rgba(109,76,237,.2);
+  --accent: #0d9488; --accent-bg: rgba(13,148,136,.07); --accent-border: rgba(13,148,136,.2);
+  --warning: #ca8a04; --warning-bg: rgba(202,138,4,.07); --warning-border: rgba(202,138,4,.2);
+  --danger: #dc2626; --danger-bg: rgba(220,38,38,.07); --danger-border: rgba(220,38,38,.2);
+  --amber: #d97706; --amber-bg: rgba(217,119,6,.07); --amber-border: rgba(217,119,6,.2);
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #09090b; --surface: #18181b; --surface-2: #27272a; --surface-3: #3f3f46;
+    --border: #3f3f46; --border-light: #52525b;
+    --text: #fafafa; --text-secondary: #a1a1aa; --text-muted: #71717a;
+    --primary: #8b6cf6; --primary-bg: rgba(139,108,246,.1); --primary-border: rgba(139,108,246,.25);
+    --accent: #2dd4bf; --accent-bg: rgba(45,212,191,.1); --accent-border: rgba(45,212,191,.25);
+    --warning: #eab308; --warning-bg: rgba(234,179,8,.1); --warning-border: rgba(234,179,8,.25);
+    --danger: #ef4444; --danger-bg: rgba(239,68,68,.1); --danger-border: rgba(239,68,68,.25);
+    --amber: #f59e0b; --amber-bg: rgba(245,158,11,.1); --amber-border: rgba(245,158,11,.25);
+  }
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.7; }
+
+/* ═══ Sticky Nav ═══ */
+.report-nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 32px; display: flex; align-items: center; gap: 24px;
+  backdrop-filter: blur(12px); background: rgba(255,255,255,.85);
+}
+@media (prefers-color-scheme: dark) {
+  .report-nav { background: rgba(24,24,27,.85); }
+}
+.report-nav .nav-title { font-weight: 800; font-size: 13px; letter-spacing: -.3px; white-space: nowrap; }
+.report-nav .nav-title span { color: var(--primary); }
+.report-nav .nav-links { display: flex; gap: 6px; flex-wrap: wrap; }
+.report-nav .nav-links a {
+  font-size: 11px; font-weight: 500; color: var(--text-muted); text-decoration: none;
+  padding: 4px 10px; border-radius: 6px; transition: all .15s;
+}
+.report-nav .nav-links a:hover { color: var(--text); background: var(--surface-2); }
+
+/* ═══ Layout ═══ */
+.report-container { max-width: 920px; margin: 0 auto; padding: 0 32px 80px; }
+
+/* ═══ Header ═══ */
+.report-header {
+  text-align: center; padding: 72px 20px 56px; border-bottom: 1px solid var(--border); margin-bottom: 56px;
+}
+.report-header .label {
+  display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--primary); background: var(--primary-bg);
+  border: 1px solid var(--primary-border); padding: 4px 14px; border-radius: 20px; margin-bottom: 20px;
+}
+.report-header h1 { font-size: 36px; font-weight: 900; letter-spacing: -1.2px; line-height: 1.2; margin-bottom: 16px; }
+.report-header .subtitle { font-size: 17px; color: var(--text-secondary); max-width: 600px; margin: 0 auto 24px; line-height: 1.6; }
+.report-header .meta { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+
+/* ═══ Executive Summary ═══ */
+.exec-summary {
+  background: var(--primary-bg); border: 1px solid var(--primary-border); border-radius: 12px;
+  padding: 28px 32px; margin-bottom: 56px;
+}
+.exec-summary h2 { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.exec-summary p { font-size: 15px; color: var(--text-secondary); line-height: 1.7; }
+.exec-summary strong { color: var(--text); }
+
+/* ═══ Sections ═══ */
+.section { margin-bottom: 56px; }
+.section-label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 8px;
+}
+.section h2 {
+  font-size: 24px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 8px;
+  padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.section h3 { font-size: 18px; font-weight: 700; margin: 28px 0 12px; letter-spacing: -.3px; }
+.section p { color: var(--text-secondary); margin-bottom: 12px; }
+.section ul, .section ol { color: var(--text-secondary); padding-left: 24px; margin-bottom: 12px; }
+.section li { margin-bottom: 6px; }
+.section li strong { color: var(--text); }
+
+/* ═══ Case Study Cards ═══ */
+.case-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 24px 28px; margin-bottom: 16px; position: relative; overflow: hidden;
+}
+.case-card::before {
+  content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+}
+.case-card.failure::before { background: var(--danger); }
+.case-card.warning-card::before { background: var(--amber); }
+.case-card.neutral::before { background: var(--border-light); }
+.case-card .case-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.case-card .case-name { font-size: 16px; font-weight: 700; }
+.case-card .case-tags { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+.case-card .case-tag {
+  font-family: var(--mono); font-size: 9px; padding: 3px 10px; border-radius: 6px; font-weight: 600;
+}
+.tag-abandoned { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+.tag-struggling { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+.tag-deprecated { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+.tag-security { background: rgba(239,68,68,.12); color: var(--danger); border: 1px solid var(--danger-border); }
+.tag-tool { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.case-card .case-body { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+.case-card .case-body strong { color: var(--text); }
+.case-card .case-source {
+  margin-top: 12px; font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+}
+.case-card .case-source a { color: var(--primary); text-decoration: none; }
+.case-card .case-source a:hover { text-decoration: underline; }
+.case-card .case-quote {
+  background: var(--surface-2); border-left: 3px solid var(--border-light);
+  padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0;
+  font-style: italic; font-size: 13px; color: var(--text-muted);
+}
+
+/* ═══ Stats Grid ═══ */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 24px 0; }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px; text-align: center;
+}
+.stat-card .stat-num { font-size: 32px; font-weight: 900; letter-spacing: -1px; line-height: 1; margin-bottom: 6px; }
+.stat-card .stat-num.danger { color: var(--danger); }
+.stat-card .stat-num.warning { color: var(--amber); }
+.stat-card .stat-num.muted { color: var(--text-muted); }
+.stat-card .stat-label { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.stat-card .stat-source { font-family: var(--mono); font-size: 9px; color: var(--border-light); margin-top: 6px; }
+
+/* ═══ Comparison Table ═══ */
+.comparison-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
+.comparison-table th, .comparison-table td { padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
+.comparison-table th { background: var(--surface-2); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+.comparison-table td { color: var(--text-secondary); vertical-align: top; }
+.comparison-table tr:nth-child(even) td { background: var(--surface); }
+.comparison-table .tool-name { font-weight: 600; color: var(--text); white-space: nowrap; }
+
+/* ═══ Pattern List ═══ */
+.pattern-list { display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+.pattern-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px;
+}
+.pattern-num {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--danger-bg); border: 1px solid var(--danger-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: var(--danger); flex-shrink: 0;
+}
+.pattern-item .pattern-text { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+.pattern-item .pattern-text strong { color: var(--text); }
+
+/* ═══ Verdict Box ═══ */
+.verdict-box {
+  background: var(--surface); border: 2px solid var(--border); border-radius: 14px;
+  padding: 36px; text-align: center; margin: 40px 0;
+}
+.verdict-box h2 { font-size: 22px; font-weight: 800; margin-bottom: 16px; letter-spacing: -.5px; }
+.verdict-box p { font-size: 15px; color: var(--text-secondary); max-width: 640px; margin: 0 auto 12px; line-height: 1.7; }
+.verdict-box .verdict-highlight {
+  display: inline-block; background: var(--amber-bg); border: 1px solid var(--amber-border);
+  color: var(--amber); font-weight: 700; padding: 6px 18px; border-radius: 8px;
+  font-size: 14px; margin-top: 12px;
+}
+
+/* ═══ Source List ═══ */
+.sources-section { margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--border); }
+.sources-section h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.source-list { list-style: none; padding: 0; }
+.source-list li {
+  padding: 6px 0; font-size: 12px; color: var(--text-muted);
+  border-bottom: 1px solid var(--surface-2);
+}
+.source-list li a { color: var(--primary); text-decoration: none; }
+.source-list li a:hover { text-decoration: underline; }
+.source-list li .source-org { font-weight: 600; color: var(--text-secondary); }
+
+/* ═══ Print ═══ */
+@media print {
+  .report-nav { display: none; }
+  .report-container { max-width: 100%; padding: 0 20px; }
+  .case-card, .stat-card, .pattern-item { break-inside: avoid; }
+}
+
+/* ═══ Responsive ═══ */
+@media (max-width: 640px) {
+  .report-header h1 { font-size: 26px; }
+  .report-container { padding: 0 16px 60px; }
+  .report-nav { padding: 10px 16px; gap: 12px; }
+  .report-nav .nav-links { display: none; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .comparison-table { font-size: 11px; }
+  .comparison-table th, .comparison-table td { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="report-nav">
+  <div class="nav-title"><span>Agent Builder</span> Platform &mdash; Research Report</div>
+  <div class="nav-links">
+    <a href="#macro">Macro Numbers</a>
+    <a href="#case-studies">Case Studies</a>
+    <a href="#tool-failures">Tool Failures</a>
+    <a href="#pattern">The Pattern</a>
+    <a href="#when-useful">When Useful</a>
+    <a href="#verdict">Verdict</a>
+    <a href="#sources">Sources</a>
+  </div>
+</nav>
+
+<div class="report-container">
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="report-header">
+  <div class="label">Industry Research Report</div>
+  <h1>Visual Agent Workflow Builders vs Code:<br>An Honest Assessment</h1>
+  <p class="subtitle">Do enterprises actually compose multi-agent workflows via visual UIs? Or does production reality live in code? We researched the evidence.</p>
+  <div class="meta">February 2026 &middot; Based on analyst reports, documented failures, community evidence, and vendor admissions</div>
+</header>
+
+<!-- ═══════════════ EXECUTIVE SUMMARY ═══════════════ -->
+<div class="exec-summary">
+  <h2>Executive Summary</h2>
+  <p>
+    <strong>For multi-agent orchestration, production work is overwhelmingly code-based.</strong> Visual builders have a genuine but much narrower niche than their marketing suggests &mdash; primarily single-agent chatbots, simple automations, and prototyping. Every documented enterprise deployment of a visual builder in production is a <strong>single-agent chatbot</strong>, not multi-agent workflow orchestration. The companies doing the most sophisticated agent work (Anthropic, LangChain, Microsoft's own architecture team) all build and recommend code-first approaches for anything beyond simple chatbots.
+  </p>
+</div>
+
+<!-- ═══════════════ MACRO NUMBERS ═══════════════ -->
+<section class="section" id="macro">
+  <div class="section-label">Section 01</div>
+  <h2>The Macro Numbers</h2>
+  <p>Industry-wide data paints a clear picture of visual AI builder adoption struggles.</p>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num danger">&gt;40%</div>
+      <div class="stat-label">of agentic AI projects will be canceled by 2027</div>
+      <div class="stat-source">Gartner, June 2025</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num danger">5%</div>
+      <div class="stat-label">of Copilot pilots moved to larger-scale deployment</div>
+      <div class="stat-source">Gartner, 2025</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num warning">~70%</div>
+      <div class="stat-label">of standard office tasks failed by AI agents in benchmark</div>
+      <div class="stat-source">Carnegie Mellon + Salesforce, 2025</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num muted">6%</div>
+      <div class="stat-label">of enterprises moved GenAI projects past pilot into production</div>
+      <div class="stat-source">Gartner, 2025</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num warning">~130</div>
+      <div class="stat-label">of thousands of "agentic AI" vendors are real (rest is "agent washing")</div>
+      <div class="stat-source">Gartner, 2025</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num danger">88%</div>
+      <div class="stat-label">of organizations report AI security incidents from ungoverned agents</div>
+      <div class="stat-source">Gravitee, 2026</div>
+    </div>
+  </div>
+
+  <p>Microsoft slashed Copilot AI sales targets by up to 50% following sluggish enterprise adoption (December 2025). Satya Nadella himself admitted in an internal email that Copilot integrations "for the most part don't really work" and are "not smart."</p>
+</section>
+
+<!-- ═══════════════ CASE STUDIES ═══════════════ -->
+<section class="section" id="case-studies">
+  <div class="section-label">Section 02</div>
+  <h2>Named Companies: Tried Visual, Moved to Code</h2>
+
+  <div class="case-card failure">
+    <div class="case-header">
+      <div class="case-name">Cloud Capital</div>
+      <div class="case-tags">
+        <span class="case-tag tag-abandoned">ABANDONED</span>
+        <span class="case-tag tag-tool">Retool</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <p>Cloud Capital relied heavily on <strong>Retool</strong> (low-code platform) for internal admin tooling, dashboards, and workflow orchestration. Once AI-assisted coding (Cursor) became viable, they rebuilt everything custom <strong>"in just a couple of sprints"</strong> &mdash; with better UI consistency, lower total cost of ownership, and more control.</p>
+      <p>Founder Zack Liscio wrote the viral blog post <strong>"RIP Low-Code 2014-2025"</strong>, and the Hacker News thread brought out dozens of similar stories from other companies doing the same migration.</p>
+    </div>
+    <div class="case-source">Source: <a href="https://www.zackliscio.com/posts/rip-low-code-2014-2025/" target="_blank">Zack Liscio, "RIP Low-Code 2014-2025"</a> &middot; <a href="https://news.ycombinator.com/item?id=46767440" target="_blank">Hacker News Discussion</a></div>
+  </div>
+
+  <div class="case-card failure">
+    <div class="case-header">
+      <div class="case-name">Microsoft Copilot Studio &mdash; Multi-Agent Architecture</div>
+      <div class="case-tags">
+        <span class="case-tag tag-struggling">BROKEN</span>
+        <span class="case-tag tag-tool">Copilot Studio</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <p>Ragnar Heil's detailed technical review documented systemic failures in Copilot Studio's multi-agent capabilities:</p>
+      <ul>
+        <li><strong>Child agents cannot run their own MCP servers</strong> &mdash; tool invocation fails silently</li>
+        <li>Every multi-agent design must <strong>proxy all MCP calls through the parent agent</strong></li>
+        <li><strong>Zero debugging visibility</strong> on tool execution failures</li>
+        <li>ALM (Agent Lifecycle Management) triggers <strong>"vague SQL errors"</strong></li>
+        <li>Legacy Power Virtual Agents architecture underneath limits orchestration</li>
+      </ul>
+      <div class="case-quote">"Clunky, unintuitive, and feels like a hack... Under the hood, Copilot Studio is still heavily influenced by the legacy Power Virtual Agents framework." &mdash; Ragnar Heil</div>
+      <p><strong>Gartner found only 5% of Copilot pilot organizations</strong> moved to larger-scale deployment. Microsoft itself slashed sales targets by up to 50%.</p>
+    </div>
+    <div class="case-source">Source: <a href="https://ragnarheil.de/the-good-the-bad-and-the-ugly-of-copilot-studio-a-brutally-honest-review-going-into-late-2025/" target="_blank">Ragnar Heil, "The Good, The Bad, and The Ugly of Copilot Studio"</a></div>
+  </div>
+
+  <div class="case-card warning-card">
+    <div class="case-header">
+      <div class="case-name">Salesforce Agentforce</div>
+      <div class="case-tags">
+        <span class="case-tag tag-struggling">SUB-20% ADOPTION</span>
+        <span class="case-tag tag-tool">Agentforce</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <p>5,000 deals closed by Feb 2025, but <strong>only 3,000 paid customers</strong> and 2,000 still in testing &mdash; many bundled with wider packages, not actively used.</p>
+      <ul>
+        <li><strong>$2-per-conversation pricing</strong> priced out SMBs and nonprofits, made enterprises uneasy about unpredictable costs</li>
+        <li>Salesforce CFO expects "modest" sales; company growth at <strong>7-8% &mdash; slowest ever</strong></li>
+        <li>Documentation described as "fiddly and not well thought through"</li>
+      </ul>
+      <div class="case-quote">"There aren't many standard functions available yet. You really have to build a lot of foundational automation." &mdash; Keir Bowden, Salesforce Technical Expert</div>
+      <p><strong>Named companies struggling:</strong> Gruve (Rob Thomason, Sr. Architect) &mdash; facing challenges with regional complexity; Cosimo Consulting (Jessica Oliver, MD) &mdash; identified data/technical debt as critical blockers.</p>
+    </div>
+    <div class="case-source">Source: <a href="https://www.salesforceben.com/why-agentforce-adoption-is-slower-than-expected-and-what-salesforce-needs-to-do/" target="_blank">Salesforce Ben Analysis</a> &middot; <a href="https://www.getgenerative.ai/salesforce-agentforce-limitations/" target="_blank">GetGenerative Limitations Review</a></div>
+  </div>
+
+  <div class="case-card failure">
+    <div class="case-header">
+      <div class="case-name">Soci&eacute;t&eacute; G&eacute;n&eacute;rale</div>
+      <div class="case-tags">
+        <span class="case-tag tag-abandoned">SCRAPPED</span>
+        <span class="case-tag tag-tool">Internal AI Tool</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <p>The French banking giant <strong>scrapped its internally-built AI tool entirely</strong> and turned to Microsoft Copilot &mdash; an interesting inverse case showing that even custom-built AI tools face abandonment when they can't deliver.</p>
+    </div>
+    <div class="case-source">Source: <a href="https://www.bloomberg.com/news/articles/2026-01-12/socgen-turns-to-microsoft-s-copilot-after-scrapping-own-ai-tool" target="_blank">Bloomberg, January 2026</a></div>
+  </div>
+
+  <div class="case-card failure">
+    <div class="case-header">
+      <div class="case-name">n8n Community &mdash; 500 Sales Calls Pipeline</div>
+      <div class="case-tags">
+        <span class="case-tag tag-abandoned">MOVED TO CODE</span>
+        <span class="case-tag tag-tool">n8n</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <p>A community member built a pipeline processing 500 sales call MP3s &mdash; transcription, speaker diarization, and insight extraction &mdash; in <strong>3 hours using Claude Code</strong>. The same task was estimated at <strong>20+ hours within n8n's visual workflow builder</strong>.</p>
+      <p>This was posted in n8n's own community forum under the revealing title <strong>"When N8N is NOT the Right Choice for AI Automation."</strong></p>
+    </div>
+    <div class="case-source">Source: <a href="https://community.n8n.io/t/when-n8n-is-not-the-right-choice-for-ai-automation/187135" target="_blank">n8n Community Forum</a></div>
+  </div>
+
+  <div class="case-card neutral">
+    <div class="case-header">
+      <div class="case-name">Calcapp</div>
+      <div class="case-tags">
+        <span class="case-tag tag-struggling">PIVOTING</span>
+        <span class="case-tag tag-tool">Low-Code Platform</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <p>Co-founder David Polberger reported receiving <strong>customer cancellations citing migration to "AI-based platforms."</strong> The company is now pivoting: exposing functionality via MCP protocols and converting their formula engine into a developer-focused library instead of maintaining their end-user low-code product.</p>
+    </div>
+    <div class="case-source">Source: <a href="https://news.ycombinator.com/item?id=46767440" target="_blank">Hacker News "RIP Low-Code" thread</a></div>
+  </div>
+</section>
+
+<!-- ═══════════════ TOOL FAILURES ═══════════════ -->
+<section class="section" id="tool-failures">
+  <div class="section-label">Section 03</div>
+  <h2>Visual AI Builder Tool Failures (Documented)</h2>
+  <p>Each major open-source visual agent builder has documented production-readiness issues.</p>
+
+  <div class="case-card failure">
+    <div class="case-header">
+      <div class="case-name">Langflow &mdash; Critical Security Breach</div>
+      <div class="case-tags">
+        <span class="case-tag tag-security">CVE-2025-3248 &middot; CVSS 9.8</span>
+        <span class="case-tag tag-tool">Langflow</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <p><strong>Unauthenticated Remote Code Execution</strong> via Python <code>exec()</code> on user-supplied code without authentication or sandboxing. <strong>Actively exploited in the wild</strong> &mdash; the Flodric botnet deployed through compromised Langflow instances. 361 malicious IPs observed attacking Langflow instances (Greynoise). CISA added to Known Exploited Vulnerabilities catalog.</p>
+      <p>A <strong>second critical vulnerability</strong> (CVE-2025-34291) for account takeover + RCE was also discovered.</p>
+      <p>Beyond security: community reports <strong>10-15 second delays</strong> before LLM calls, CPU hitting 100%, and no version control (teams export JSON and share on Slack).</p>
+      <div class="case-quote">"Many teams use Langflow for prototyping and LangChain/LangGraph for production." &mdash; Industry consensus</div>
+    </div>
+    <div class="case-source">
+      Source: <a href="https://www.zscaler.com/blogs/security-research/cve-2025-3248-rce-vulnerability-langflow" target="_blank">Zscaler</a> &middot;
+      <a href="https://medium.com/@LeoNguyenAI/no-flow-with-langflow-the-hidden-cost-of-no-code-ai-tools-2b9ef570fac2" target="_blank">"No Flow with Langflow" (Medium)</a>
+    </div>
+  </div>
+
+  <div class="case-card failure">
+    <div class="case-header">
+      <div class="case-name">Dify &mdash; Collapsed at 10 QPS</div>
+      <div class="case-tags">
+        <span class="case-tag tag-struggling">SCALING FAILURE</span>
+        <span class="case-tag tag-tool">Dify</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <p><strong>Alibaba Cloud's internal production testing</strong> of a 10-node Dify workflow application on 4C8G server specs:</p>
+      <ul>
+        <li><strong>~10 queries/second fully utilized the CPU</strong>, crashing both the app AND the management interface</li>
+        <li>Default configuration (1 worker) creates <strong>zero concurrency</strong> &mdash; only one request at a time</li>
+        <li>Plugin-based architecture causes frequent inter-component calls in workflows</li>
+      </ul>
+      <p>No SOC 2/ISO certifications found. ~20 GitHub issues opened daily; team of under 10 cannot keep up.</p>
+    </div>
+    <div class="case-source">Source: <a href="https://www.alibabacloud.com/blog/dify-performance-bottleneck-higress-ai-gateway-injects-it-with-the-soul-of-high-availability_602527" target="_blank">Alibaba Cloud: Dify Performance Bottleneck</a></div>
+  </div>
+
+  <div class="case-card failure">
+    <div class="case-header">
+      <div class="case-name">Flowise &mdash; Memory Leaks &amp; Data Loss</div>
+      <div class="case-tags">
+        <span class="case-tag tag-struggling">NOT PRODUCTION-READY</span>
+        <span class="case-tag tag-tool">Flowise</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <p>GitHub issues document systemic production failures:</p>
+      <ul>
+        <li><strong>Issue #2774:</strong> FATAL ERROR: JavaScript heap out of memory &mdash; crashes despite minimal activity</li>
+        <li><strong>Discussion #3733:</strong> Excessive RAM consumption &mdash; graphs accumulate in pool, never garbage collected</li>
+        <li><strong>Discussion #570:</strong> Disappearing flows + production data loss</li>
+        <li><strong>Issue #4824:</strong> No proper concurrency handling in queue mode</li>
+      </ul>
+      <div class="case-quote">"Better suited for demos than for production-ready tools." &mdash; ZenML Assessment</div>
+    </div>
+    <div class="case-source">Source: <a href="https://github.com/FlowiseAI/Flowise/issues/2774" target="_blank">GitHub Issue #2774</a> &middot; <a href="https://github.com/FlowiseAI/Flowise/discussions/3733" target="_blank">#3733</a> &middot; <a href="https://github.com/FlowiseAI/Flowise/discussions/570" target="_blank">#570</a></div>
+  </div>
+
+  <div class="case-card warning-card">
+    <div class="case-header">
+      <div class="case-name">AutoGen Studio &mdash; Deprecated by Microsoft</div>
+      <div class="case-tags">
+        <span class="case-tag tag-deprecated">DEPRECATED</span>
+        <span class="case-tag tag-tool">AutoGen Studio</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <p>Microsoft's own documentation explicitly calls AutoGen Studio <strong>"a research prototype not meant for production environments."</strong></p>
+      <p>In October 2025, Microsoft <strong>merged AutoGen with Semantic Kernel</strong> into the unified "Microsoft Agent Framework." AutoGen Studio will only receive bug fixes &mdash; no new features. Users were told to <strong>plan migration</strong> to the new code-first framework.</p>
+    </div>
+    <div class="case-source">Source: <a href="https://microsoft.github.io/autogen/dev//user-guide/autogenstudio-user-guide/index.html" target="_blank">AutoGen Documentation</a></div>
+  </div>
+
+  <div class="case-card warning-card">
+    <div class="case-header">
+      <div class="case-name">n8n &mdash; AI Agents Hit Ceiling at Scale</div>
+      <div class="case-tags">
+        <span class="case-tag tag-struggling">SCALING LIMITS</span>
+        <span class="case-tag tag-tool">n8n</span>
+      </div>
+    </div>
+    <div class="case-body">
+      <ul>
+        <li><strong>Large datasets (100k+ rows) crash the server</strong></li>
+        <li>Complex workflows make the <strong>UI painfully slow</strong></li>
+        <li>Cloud limits: 2,500 calls/month + 5 simultaneous executions</li>
+        <li>AI agents <strong>hallucinate after a few interactions</strong> &mdash; no persistent memory between runs</li>
+        <li>No built-in token usage monitoring or cost optimization</li>
+      </ul>
+    </div>
+    <div class="case-source">Source: <a href="https://latenode.com/blog/low-code-no-code-platforms/n8n-setup-workflows-self-hosting-templates/n8n-ai-agents-2025-complete-capabilities-review-implementation-reality-check" target="_blank">Latenode: N8N AI Agents 2025 Complete Review</a></div>
+  </div>
+
+  <h3>Tool Comparison Summary</h3>
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Tool</th>
+        <th>What Went Wrong</th>
+        <th>Production Status</th>
+        <th>Common Migration Path</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="tool-name">Copilot Studio</td>
+        <td>Multi-agent broken, no debug visibility, legacy PVA architecture</td>
+        <td>5% pilot-to-production rate</td>
+        <td>Azure Agent Framework (code)</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Agentforce</td>
+        <td>Prohibitive pricing, sparse functions, sub-20% adoption</td>
+        <td>3,000 paid of 5,000 deals</td>
+        <td>Custom Salesforce code</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Langflow</td>
+        <td>CVSS 9.8 RCE, performance issues, no version control</td>
+        <td>Prototyping only</td>
+        <td>LangChain / LangGraph code</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Dify</td>
+        <td>10 QPS ceiling, zero concurrency default, no SOC 2</td>
+        <td>Demo / light use only</td>
+        <td>Custom Python + frameworks</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Flowise</td>
+        <td>Memory leaks, data loss, no concurrency, no RBAC</td>
+        <td>"Better suited for demos"</td>
+        <td>LangChain / custom code</td>
+      </tr>
+      <tr>
+        <td class="tool-name">AutoGen Studio</td>
+        <td>Deprecated by Microsoft itself, "not for production"</td>
+        <td>Deprecated &mdash; bug fixes only</td>
+        <td>Microsoft Agent Framework</td>
+      </tr>
+      <tr>
+        <td class="tool-name">n8n</td>
+        <td>100k+ row crashes, slow UI at scale, agent hallucination</td>
+        <td>Works for simple automations</td>
+        <td>Claude Code / custom Python</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════ THE PATTERN ═══════════════ -->
+<section class="section" id="pattern">
+  <div class="section-label">Section 04</div>
+  <h2>The Pattern: Death by a Thousand Cuts</h2>
+  <p>It's not one dramatic mass exodus. Instead, the evidence reveals a consistent 7-step pattern repeated across organizations:</p>
+
+  <div class="pattern-list">
+    <div class="pattern-item">
+      <div class="pattern-num">1</div>
+      <div class="pattern-text"><strong>Organization pilots a visual AI builder.</strong> Demo goes well. Stakeholders are excited. Budget approved.</div>
+    </div>
+    <div class="pattern-item">
+      <div class="pattern-num">2</div>
+      <div class="pattern-text"><strong>Works great for the demo / simple chatbot.</strong> FAQ bot, single-agent assistant, basic automation. Real value delivered at this stage.</div>
+    </div>
+    <div class="pattern-item">
+      <div class="pattern-num">3</div>
+      <div class="pattern-text"><strong>Team tries to add multi-agent orchestration</strong> &mdash; conditional branching, error handling, HITL gates, parallel execution.</div>
+    </div>
+    <div class="pattern-item">
+      <div class="pattern-num">4</div>
+      <div class="pattern-text"><strong>Hits the ceiling.</strong> Complexity wall, scaling failure, security gap, governance void, or "spaghetti of nodes and edges" in the visual canvas.</div>
+    </div>
+    <div class="pattern-item">
+      <div class="pattern-num">5</div>
+      <div class="pattern-text"><strong>Pilot stalls or gets canceled.</strong> Gartner predicts >40% cancellation rate by 2027.</div>
+    </div>
+    <div class="pattern-item">
+      <div class="pattern-num">6</div>
+      <div class="pattern-text"><strong>Team that needs production rebuilds in code</strong> &mdash; LangGraph, raw Python, Semantic Kernel, custom orchestration.</div>
+    </div>
+    <div class="pattern-item">
+      <div class="pattern-num">7</div>
+      <div class="pattern-text"><strong>AI-assisted coding makes the rebuild fast.</strong> Claude Code, Cursor, GitHub Copilot mean the "I can't code" barrier that justified visual builders no longer exists.</div>
+    </div>
+  </div>
+
+  <h3>The "Squeeze" Theory (Harrison Chase, LangChain CEO)</h3>
+  <p>In his October 2025 essay <a href="https://blog.langchain.com/not-another-workflow-builder/" target="_blank" style="color:var(--primary)">"Not Another Workflow Builder"</a>, Chase articulated why LangChain deliberately chose <strong>not</strong> to build a visual workflow builder:</p>
+  <div class="case-card neutral" style="margin-top:12px">
+    <div class="case-body">
+      <p>Visual workflow builders are being <strong>squeezed from both sides:</strong></p>
+      <ul>
+        <li><strong>From below (simple tasks):</strong> A single agent with tools + a good prompt handles what used to require multi-step workflows. No visual builder needed.</li>
+        <li><strong>From above (complex tasks):</strong> Code is the only viable option as complexity grows, and AI-assisted code generation makes coding dramatically easier for non-engineers.</li>
+      </ul>
+      <div class="case-quote">"Complex tasks quickly get too complicated to manage in a visual builder... the visual canvas becomes a mess of nodes and edges." &mdash; Harrison Chase</div>
+      <p>This leaves visual builders in a <strong>shrinking middle zone</strong> that is being eroded from both directions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ WHEN USEFUL ═══════════════ -->
+<section class="section" id="when-useful">
+  <div class="section-label">Section 05</div>
+  <h2>When Visual Builders ARE Genuinely Useful</h2>
+  <p>To be fair, visual builders have a legitimate niche. The evidence supports real value in these specific scenarios:</p>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Use Case</th>
+        <th>Why Visual Works</th>
+        <th>Evidence</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="tool-name">Single-agent chatbots &amp; FAQ bots</td>
+        <td>Complexity stays low; visual config is genuinely faster than code</td>
+        <td>Eneco (4,000 conversations), CSX, BDO Colombia, Virgin Money &mdash; all production Copilot Studio chatbots</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Rapid prototyping</td>
+        <td>Explore agent behaviors before committing to architecture</td>
+        <td>AutoGen Studio explicitly positioned this way; "AutoGen is the playground, LangGraph is the factory"</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Business-IT communication</td>
+        <td>Visual flows serve as shared language between PMs and devs</td>
+        <td>Microsoft's hybrid model: design visually, implement in code</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Demos &amp; stakeholder buy-in</td>
+        <td>30-minute visual demo beats 2-day code demo for exec approval</td>
+        <td>Universal industry practice; legitimate and important</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Simple automations (non-AI)</td>
+        <td>IT ticket routing, email triage, basic data transforms</td>
+        <td>n8n has genuine enterprise traction in financial institutions for these workflows</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Small-team internal tools</td>
+        <td>A 5-person team doesn't need LangGraph for a helper bot</td>
+        <td>Dify and Flowise are viable at low scale / low traffic</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════ WHAT PRODUCTION LOOKS LIKE ═══════════════ -->
+<section class="section">
+  <div class="section-label">Section 06</div>
+  <h2>What Production Multi-Agent Actually Looks Like</h2>
+  <p>Every documented production-grade multi-agent system uses code:</p>
+
+  <div class="case-card neutral">
+    <div class="case-header">
+      <div class="case-name">Anthropic &mdash; Multi-Agent Research System</div>
+      <div class="case-tags"><span class="case-tag tag-tool">Custom Python</span></div>
+    </div>
+    <div class="case-body">
+      <p>Orchestrator-worker pattern: a lead agent spawns 3-5 parallel subagents, each with separate context windows, coordinated through external memory. Achieved <strong>90.2% improvement</strong> over single-agent performance. Entirely code-based.</p>
+    </div>
+    <div class="case-source">Source: <a href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank">Anthropic Engineering Blog</a></div>
+  </div>
+
+  <div class="case-card neutral">
+    <div class="case-header">
+      <div class="case-name">Microsoft Architecture Center Guidance</div>
+      <div class="case-tags"><span class="case-tag tag-tool">Agent Framework (code)</span></div>
+    </div>
+    <div class="case-body">
+      <p>Microsoft's own Azure Architecture Center recommends the <strong>Microsoft Agent Framework (code-first)</strong> for multi-agent workflow automation. Not Copilot Studio. Their own architecture team chose code for their own multi-agent reference implementations.</p>
+    </div>
+    <div class="case-source">Source: <a href="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/idea/multiple-agent-workflow-automation" target="_blank">Microsoft Architecture Center</a></div>
+  </div>
+
+  <div class="case-card neutral">
+    <div class="case-header">
+      <div class="case-name">Microsoft Hybrid Recommendation</div>
+      <div class="case-tags"><span class="case-tag tag-tool">Hybrid: Visual Shell + Code Core</span></div>
+    </div>
+    <div class="case-body">
+      <p>Microsoft documented three approaches (workflow-first, code-first, hybrid) and recommends <strong>hybrid for most enterprise scenarios</strong>. In practice, "hybrid" means: start with Copilot Studio for the visual design, but call Azure Functions for custom logic, trigger Logic Apps for complex orchestration, and invoke the Agent Framework for multi-agent coordination. <strong>The visual layer becomes a thin orchestration shell over code-based components.</strong></p>
+    </div>
+    <div class="case-source">Source: <a href="https://techcommunity.microsoft.com/blog/azurearchitectureblog/building-ai-agents-workflow-first-vs-code-first-vs-hybrid/4466788" target="_blank">Microsoft Tech Community: Building AI Agents</a></div>
+  </div>
+</section>
+
+<!-- ═══════════════ CITIZEN DEVELOPER ═══════════════ -->
+<section class="section">
+  <div class="section-label">Section 07</div>
+  <h2>The Citizen Developer Dream: Failed to Materialize</h2>
+  <p>Visual builders are fundamentally premised on the idea that non-technical users will build their own AI systems. The evidence says otherwise.</p>
+
+  <div class="case-card warning-card">
+    <div class="case-body">
+      <p>Blueprint Systems documented <strong>7 specific reasons</strong> why the citizen developer concept never materialized at scale:</p>
+      <ol>
+        <li>Real-world problem complexity exceeds tool capabilities</li>
+        <li>Quality and scalability issues in citizen-built applications</li>
+        <li>Security vulnerabilities from untrained developers</li>
+        <li>Integration difficulties with enterprise architectures</li>
+        <li>Vendor lock-in from proprietary formats</li>
+        <li>Governance and compliance gaps</li>
+        <li>Maintenance burden falls back on IT teams anyway</li>
+      </ol>
+      <p>Meanwhile, <strong>90% of enterprises with 1,000+ employees</strong> are concerned about shadow AI. More than half of all AI agents operate without security oversight. 88% of organizations confirmed AI security incidents averaging <strong>223 incidents per month</strong>.</p>
+    </div>
+    <div class="case-source">
+      Source: <a href="https://www.blueprintsys.com/blog/7-reasons-why-citizen-developer-never-materialized" target="_blank">Blueprint Systems</a> &middot;
+      <a href="https://www.gravitee.io/blog/state-of-ai-agent-security-2026-report-when-adoption-outpaces-control" target="_blank">Gravitee: State of AI Agent Security 2026</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ VERDICT ═══════════════ -->
+<section class="section" id="verdict">
+  <div class="section-label">Section 08</div>
+  <h2>Verdict &amp; Recommendation</h2>
+
+  <table class="comparison-table" style="margin-bottom:24px">
+    <thead>
+      <tr>
+        <th>Dimension</th>
+        <th>Visual Builders</th>
+        <th>Code-Based</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="tool-name">Single-agent chatbots</td>
+        <td>Genuinely useful, production-proven</td>
+        <td>Overkill for simple cases</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Multi-agent orchestration</td>
+        <td>Mostly demos and prototypes</td>
+        <td>Where all serious production work happens</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Enterprise adoption</td>
+        <td>Real but narrow (chatbots, simple automation)</td>
+        <td>Dominant for complex workflows</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Who uses them</td>
+        <td>IT teams, some business users, prototype builders</td>
+        <td>Engineers, ML teams, platform teams</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Trajectory (2025-2027)</td>
+        <td>Being squeezed from both sides</td>
+        <td>Growing as AI code generation lowers barriers</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Version control / CI/CD</td>
+        <td>Proprietary blobs, no meaningful diff</td>
+        <td>Standard git workflows, full CI/CD</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Testing</td>
+        <td>"Click run and see what happens"</td>
+        <td>Unit tests, integration tests, mocks</td>
+      </tr>
+      <tr>
+        <td class="tool-name">Debugging</td>
+        <td>"It failed at this node"</td>
+        <td>Stack traces, LangSmith, full observability</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="verdict-box">
+    <h2>The Honest Position</h2>
+    <p>The visual agent workflow builder market is largely sustained by three forces: (1) marketing and demos to executives, (2) genuine value in simple chatbot deployment, and (3) the persistent dream that non-technical users will build their own AI systems.</p>
+    <p>For multi-agent workflow orchestration &mdash; the complex, production-grade problem &mdash; the evidence is overwhelming: <strong>code wins</strong>. The companies doing the most sophisticated agent work all build and recommend code-first.</p>
+    <p>If a visual builder adds real value, it should <strong>generate code from the visual design</strong> &mdash; not pretend the visual builder IS the runtime.</p>
+    <div class="verdict-highlight">Design visually. Generate code. Deploy code.</div>
+  </div>
+</section>
+
+<!-- ═══════════════ SOURCES ═══════════════ -->
+<section class="sources-section" id="sources">
+  <h2>Sources &amp; References</h2>
+  <ol class="source-list">
+    <li><span class="source-org">LangChain</span> &mdash; <a href="https://blog.langchain.com/not-another-workflow-builder/" target="_blank">"Not Another Workflow Builder" (Harrison Chase, 2025)</a></li>
+    <li><span class="source-org">Microsoft</span> &mdash; <a href="https://techcommunity.microsoft.com/blog/azurearchitectureblog/building-ai-agents-workflow-first-vs-code-first-vs-hybrid/4466788" target="_blank">"Building AI Agents: Workflow-First vs. Code-First vs. Hybrid"</a></li>
+    <li><span class="source-org">Anthropic</span> &mdash; <a href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank">"How We Built Our Multi-Agent Research System"</a></li>
+    <li><span class="source-org">Gartner</span> &mdash; <a href="https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027" target="_blank">"Over 40% of Agentic AI Projects Will Be Canceled by 2027"</a></li>
+    <li><span class="source-org">Carnegie Mellon + Salesforce</span> &mdash; <a href="https://www.theregister.com/2025/06/29/ai_agents_fail_a_lot/" target="_blank">"AI Agents Wrong ~70% of Time" (TheAgentCompany benchmark)</a></li>
+    <li><span class="source-org">Ragnar Heil</span> &mdash; <a href="https://ragnarheil.de/the-good-the-bad-and-the-ugly-of-copilot-studio-a-brutally-honest-review-going-into-late-2025/" target="_blank">"The Good, The Bad, and The Ugly of Copilot Studio"</a></li>
+    <li><span class="source-org">Zack Liscio</span> &mdash; <a href="https://www.zackliscio.com/posts/rip-low-code-2014-2025/" target="_blank">"RIP Low-Code 2014-2025" (Cloud Capital)</a></li>
+    <li><span class="source-org">Salesforce Ben</span> &mdash; <a href="https://www.salesforceben.com/why-agentforce-adoption-is-slower-than-expected-and-what-salesforce-needs-to-do/" target="_blank">"Why Agentforce Adoption Is Slower Than Expected"</a></li>
+    <li><span class="source-org">Blueprint Systems</span> &mdash; <a href="https://www.blueprintsys.com/blog/7-reasons-why-citizen-developer-never-materialized" target="_blank">"7 Reasons Why the Citizen Developer Never Materialized"</a></li>
+    <li><span class="source-org">Gravitee</span> &mdash; <a href="https://www.gravitee.io/blog/state-of-ai-agent-security-2026-report-when-adoption-outpaces-control" target="_blank">"State of AI Agent Security 2026"</a></li>
+    <li><span class="source-org">Xenoss</span> &mdash; <a href="https://xenoss.io/blog/microsoft-copilot-enterprise-limitations" target="_blank">"Microsoft Copilot Enterprise Limitations"</a></li>
+    <li><span class="source-org">PPC Land</span> &mdash; <a href="https://ppc.land/microsoft-ceo-admits-copilot-integrations-dont-really-work-as-adoption-falters/" target="_blank">"Microsoft CEO Admits Copilot Integrations Don't Really Work"</a></li>
+    <li><span class="source-org">Zscaler</span> &mdash; <a href="https://www.zscaler.com/blogs/security-research/cve-2025-3248-rce-vulnerability-langflow" target="_blank">"CVE-2025-3248 RCE Vulnerability in Langflow"</a></li>
+    <li><span class="source-org">Leo Nguyen</span> &mdash; <a href="https://medium.com/@LeoNguyenAI/no-flow-with-langflow-the-hidden-cost-of-no-code-ai-tools-2b9ef570fac2" target="_blank">"No Flow with Langflow: The Hidden Cost of No-Code AI Tools"</a></li>
+    <li><span class="source-org">Alibaba Cloud</span> &mdash; <a href="https://www.alibabacloud.com/blog/dify-performance-bottleneck-higress-ai-gateway-injects-it-with-the-soul-of-high-availability_602527" target="_blank">"Dify Performance Bottleneck"</a></li>
+    <li><span class="source-org">ZenML</span> &mdash; <a href="https://www.zenml.io/blog/langflow-alternatives" target="_blank">"8 Langflow Alternatives for Production-Ready AI Workflows"</a></li>
+    <li><span class="source-org">n8n Community</span> &mdash; <a href="https://community.n8n.io/t/when-n8n-is-not-the-right-choice-for-ai-automation/187135" target="_blank">"When N8N is NOT the Right Choice for AI Automation"</a></li>
+    <li><span class="source-org">Microsoft</span> &mdash; <a href="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/idea/multiple-agent-workflow-automation" target="_blank">Azure Architecture Center: Multi-Agent Workflow Automation</a></li>
+    <li><span class="source-org">Microsoft</span> &mdash; <a href="https://devblogs.microsoft.com/foundry/introducing-multi-agent-workflows-in-foundry-agent-service/" target="_blank">"Introducing Multi-Agent Workflows in Foundry Agent Service"</a></li>
+    <li><span class="source-org">Bloomberg</span> &mdash; <a href="https://www.bloomberg.com/news/articles/2026-01-12/socgen-turns-to-microsoft-s-copilot-after-scrapping-own-ai-tool" target="_blank">"SocGen Turns to Microsoft's Copilot After Scrapping Own AI Tool"</a></li>
+    <li><span class="source-org">McKinsey</span> &mdash; <a href="https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai" target="_blank">"State of AI 2025"</a></li>
+    <li><span class="source-org">Stack Overflow</span> &mdash; <a href="https://survey.stackoverflow.co/2025/ai" target="_blank">"2025 Developer Survey: AI Section"</a></li>
+    <li><span class="source-org">GetGenerative</span> &mdash; <a href="https://www.getgenerative.ai/salesforce-agentforce-limitations/" target="_blank">"Salesforce Agentforce Limitations"</a></li>
+    <li><span class="source-org">GetMonetizely</span> &mdash; <a href="https://www.getmonetizely.com/blogs/the-doomed-evolution-of-salesforces-agentforce-pricing" target="_blank">"The Doomed Evolution of Salesforce's Agentforce Pricing"</a></li>
+    <li><span class="source-org">Inkeep</span> &mdash; <a href="https://inkeep.com/blog/agent-frameworks-platforms-overview" target="_blank">"Agent Frameworks: No-Code vs Code Platforms Overview"</a></li>
+    <li><span class="source-org">Forrester</span> &mdash; <a href="https://www.forrester.com/blogs/velocity-is-the-ing-strategy-what-citizen-development-means-for-ai-enhanced-businesses/" target="_blank">"What Citizen Development Means for AI-Enhanced Businesses"</a></li>
+  </ol>
+</section>
+
+<footer style="text-align:center;padding:40px 0 20px;border-top:1px solid var(--border);margin-top:40px">
+  <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">
+    Agent Builder Platform &middot; Research Report &middot; February 2026<br>
+    Based on publicly available analyst reports, vendor documentation, community forums, and GitHub issues.
+  </div>
+</footer>
+
+</div>
+</body>
+</html>
