@@ -51,12 +51,15 @@
           return;
         }
 
-        container.innerHTML = `<div class="card-grid">${agents.map(a => `
+        container.innerHTML = `<div class="card-grid">${agents.map(a => {
+          const pc = (a.prompt_params || []).length;
+          return `
           <div class="card agent-card" onclick="openAgent('${a.name}')">
             <h3>${escHtml(a.name)}</h3>
-            <div class="agent-meta">v${a.version} &middot; ${escHtml(a.id.substring(0, 8))}...</div>
+            <div class="agent-meta">v${a.version} &middot; ${escHtml(a.id.substring(0, 8))}...${pc > 0 ? ` &middot; ${pc} param${pc !== 1 ? 's' : ''}` : ''}</div>
             <p style="font-size:.85rem;color:var(--text-secondary)">${escHtml(a.description || '')}</p>
-          </div>`).join('')}</div>`;
+          </div>`;
+        }).join('')}</div>`;
       } catch (err) {
         container.innerHTML = `
           <div class="empty-state">

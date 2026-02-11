@@ -32,6 +32,9 @@ const state = {
   deployedAgent: null, // { name, id, version }
   chatHistory: [],     // [{ role, content, toolCalls }]
   previousResponseId: null,
+  promptParams: [],          // prompt param definitions for builder
+  paramValues: {},           // resolved param values for chat
+  chatParamsConfirmed: false, // whether user confirmed params before chat
   filter: 'all',
   healthResults: {},    // tool_id -> { status, message, details, loading }
   toolFormMode: null,   // null | 'add' | 'edit'
@@ -152,8 +155,7 @@ function renderToolCatalog(el) {
     </div>
     <div class="actions-bar">
       <span style="color:var(--text-secondary);font-size:.85rem">${Object.keys(state.selected).length} tool(s) selected</span>
-      <button class="btn btn-primary" onclick="goToStep(2)"
-        ${Object.keys(state.selected).length === 0 ? 'disabled' : ''}>Next: Configure Parameters</button>
+      <button class="btn btn-primary" onclick="goToStep(2)">${Object.keys(state.selected).length === 0 ? 'Skip Tools \u2192' : 'Next: Configure Parameters'}</button>
     </div>`;
 }
 
@@ -472,6 +474,19 @@ async function confirmDeleteTool(toolId) {
 async function renderToolParams(el) {
   const toolIds = Object.keys(state.selected);
 
+  if (toolIds.length === 0) {
+    el.innerHTML = `
+      <h2 style="margin-bottom:16px">Configure Tool Parameters</h2>
+      <div class="empty-state" style="padding:40px">
+        <p>No tools selected &mdash; this agent will use only its model and instructions.</p>
+      </div>
+      <div class="actions-bar">
+        <button class="btn btn-secondary" onclick="goToStep(1)">Back</button>
+        <button class="btn btn-primary" onclick="goToStep(3)">Next: Agent Config</button>
+      </div>`;
+    return;
+  }
+
   // Fetch details for tools we haven't loaded yet
   const toFetch = toolIds.filter(id => !state.toolDetails[id]);
   if (toFetch.length > 0) {
@@ -611,6 +626,7 @@ function renderAgentConfig(el) {
     const d = state.toolDetails[id] || state.tools.find(t => t.id === id) || {};
     return d.name || id;
   });
+  const activeParams = state.promptParams.filter(p => p.key.trim());
 
   el.innerHTML = `
     <h2 style="margin-bottom:16px">Agent Configuration</h2>
@@ -631,16 +647,22 @@ function renderAgentConfig(el) {
       </div>
       <div class="form-group">
         <label for="agent-instructions">Instructions *</label>
+        <div class="hint">Parameter values are passed as context with each chat message.</div>
         <textarea id="agent-instructions" rows="6"
           placeholder="You are a helpful assistant..."
           onchange="state.instructions=this.value">${esc(state.instructions)}</textarea>
       </div>
     </div>
 
+    ${renderPromptParamsBuilder()}
+
     <div class="card">
       <h4 style="margin-bottom:12px">Summary</h4>
-      <div class="summary-row"><span class="summary-label">Tools</span><span class="summary-value">${toolNames.join(', ')}</span></div>
+      <div class="summary-row"><span class="summary-label">Tools</span><span class="summary-value">${toolNames.length > 0 ? toolNames.join(', ') : 'None'}</span></div>
       <div class="summary-row"><span class="summary-label">Model</span><span class="summary-value">${esc(state.agentModel)}</span></div>
+      ${activeParams.length > 0
+        ? `<div class="summary-row"><span class="summary-label">Prompt Params</span><span class="summary-value">${activeParams.map(p => p.key).join(', ')}</span></div>`
+        : ''}
       ${Object.keys(state.selected).map(id => {
         const params = { ...state.selected[id].deploy_params, ...state.selected[id].runtime_params };
         const paramStr = Object.entries(params).filter(([,v]) => v && (!Array.isArray(v) || v.length > 0))
@@ -669,6 +691,112 @@ function renderAgentConfig(el) {
   }
   nameEl.addEventListener('input', checkReady);
   instrEl.addEventListener('input', checkReady);
+}
+
+/* ===== Prompt Parameters Builder ===== */
+function renderPromptParamsBuilder() {
+  let html = `<div class="card" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h4>Prompt Parameters</h4>
+      <button class="btn btn-secondary btn-sm" onclick="addPromptParam()">+ Add Parameter</button>
+    </div>
+    <p class="hint" style="margin-bottom:12px">Define parameters that users fill in before chatting. Values are sent as context with each message.</p>`;
+
+  if (state.promptParams.length === 0) {
+    html += '<p style="font-size:.85rem;color:var(--text-secondary);text-align:center;padding:12px 0">No parameters defined.</p>';
+  }
+
+  state.promptParams.forEach((p, i) => {
+    const showOptions = p.type === 'select' || p.type === 'multi_select';
+    html += `<div class="prompt-param-row">
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>Key *</label>
+          <input type="text" value="${esc(p.key)}" placeholder="e.g. purpose"
+            onchange="setPromptParam(${i},'key',this.value)">
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>Label</label>
+          <input type="text" value="${esc(p.label)}" placeholder="Display label"
+            onchange="setPromptParam(${i},'label',this.value)">
+        </div>
+        <div class="form-group" style="width:130px;margin-bottom:0">
+          <label>Type</label>
+          <select onchange="setPromptParam(${i},'type',this.value)">
+            <option value="string" ${p.type === 'string' ? 'selected' : ''}>string</option>
+            <option value="select" ${p.type === 'select' ? 'selected' : ''}>select</option>
+            <option value="multi_select" ${p.type === 'multi_select' ? 'selected' : ''}>multi_select</option>
+          </select>
+        </div>
+        <button class="btn btn-danger btn-xs" style="margin-bottom:2px;height:38px"
+          onclick="removePromptParam(${i})">&times;</button>
+      </div>
+      ${showOptions ? `<div style="display:flex;gap:8px;margin-bottom:8px">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>Options (comma-separated) *</label>
+          <input type="text" value="${esc((p.options || []).join(', '))}"
+            placeholder="option1, option2, option3"
+            onchange="setPromptParamOptions(${i},this.value)">
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>Default</label>
+          <input type="text" value="${esc(p.default)}" placeholder="Default value"
+            onchange="setPromptParam(${i},'default',this.value)">
+        </div>
+      </div>` : `<div style="display:flex;gap:8px;margin-bottom:8px">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>Default</label>
+          <input type="text" value="${esc(p.default)}" placeholder="Default value"
+            onchange="setPromptParam(${i},'default',this.value)">
+        </div>
+      </div>`}
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>Description</label>
+          <input type="text" value="${esc(p.description)}" placeholder="Optional description"
+            onchange="setPromptParam(${i},'description',this.value)">
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>Placeholder</label>
+          <input type="text" value="${esc(p.placeholder)}" placeholder="Input hint text"
+            onchange="setPromptParam(${i},'placeholder',this.value)">
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;margin-bottom:2px;white-space:nowrap;height:38px">
+          <input type="checkbox" ${p.required ? 'checked' : ''}
+            onchange="setPromptParam(${i},'required',this.checked)"> Required
+        </label>
+      </div>
+    </div>`;
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function addPromptParam() {
+  state.promptParams.push({
+    key: '', label: '', type: 'string', options: [],
+    default: '', required: false, description: '', placeholder: ''
+  });
+  renderStep();
+}
+
+function removePromptParam(index) {
+  state.promptParams.splice(index, 1);
+  renderStep();
+}
+
+function setPromptParam(index, field, value) {
+  if (state.promptParams[index]) {
+    state.promptParams[index][field] = value;
+    if (field === 'type') renderStep();
+  }
+}
+
+function setPromptParamOptions(index, value) {
+  if (state.promptParams[index]) {
+    state.promptParams[index].options = value.split(',').map(s => s.trim()).filter(Boolean);
+  }
 }
 
 /* ===== Step 4: Deploy ===== */
@@ -700,6 +828,7 @@ async function renderDeploy(el) {
 
       return { tool_id, deploy_params: deployFilled, runtime_params: runtimeFilled };
     }),
+    prompt_params: state.promptParams.filter(p => p.key.trim()),
   };
 
   try {
@@ -730,8 +859,20 @@ async function renderDeploy(el) {
 }
 
 /* ===== Step 5: Chat ===== */
+function getActivePromptParams() {
+  if (state.promptParams.length > 0) return state.promptParams;
+  return state.deployedAgent?.prompt_params || [];
+}
+
 function renderChat(el) {
   const agent = state.deployedAgent || {};
+  const params = getActivePromptParams();
+
+  // Show param form before chat if agent has prompt params and not yet confirmed
+  if (params.length > 0 && !state.chatParamsConfirmed) {
+    renderChatParamForm(el, agent, params);
+    return;
+  }
 
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -743,6 +884,8 @@ function renderChat(el) {
       </div>
       <span class="badge badge-builtin">Deployed</span>
     </div>
+
+    ${renderParamSummaryBar()}
 
     <div class="chat-container">
       <div class="chat-messages" id="chat-messages">
@@ -771,7 +914,135 @@ function renderChat(el) {
   document.getElementById('chat-input').focus();
 }
 
+function renderChatParamForm(el, agent, params) {
+  // Initialize paramValues with defaults
+  for (const p of params) {
+    if (state.paramValues[p.key] === undefined) {
+      state.paramValues[p.key] = p.default || '';
+    }
+  }
+
+  let html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <h2 style="margin-bottom:2px">${esc(agent.name || state.agentName)}</h2>
+        <span style="font-size:.82rem;color:var(--text-secondary)">
+          ${agent.version ? `v${agent.version} \u00b7 ` : ''}${agent.id ? agent.id.substring(0, 12) + '...' : ''}
+        </span>
+      </div>
+      <span class="badge badge-builtin">Deployed</span>
+    </div>
+    <div class="card" style="max-width:600px;margin:0 auto">
+      <h4 style="margin-bottom:16px">Configure Agent Parameters</h4>
+      <p class="hint" style="margin-bottom:16px">Set the parameter values before starting the conversation.</p>`;
+
+  for (const p of params) {
+    const val = state.paramValues[p.key] || '';
+    const req = p.required ? ' *' : '';
+    const label = p.label || p.key;
+
+    html += '<div class="form-group">';
+    html += `<label>${esc(label)}${req}</label>`;
+    if (p.description) {
+      html += `<div class="hint">${esc(p.description)}</div>`;
+    }
+
+    if (p.type === 'select' && p.options?.length > 0) {
+      html += `<select onchange="state.paramValues['${p.key}']=this.value">
+        ${p.options.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+      </select>`;
+    } else if (p.type === 'multi_select' && p.options?.length > 0) {
+      const selected = val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
+      html += `<div class="chip-group">
+        ${p.options.map(o => `<button type="button" class="chip ${selected.includes(o) ? 'selected' : ''}"
+          onclick="toggleChatParam('${p.key}','${o}')">${esc(o)}</button>`).join('')}
+      </div>`;
+    } else {
+      html += `<input type="text" value="${esc(val)}"
+        placeholder="${esc(p.placeholder || '')}"
+        onchange="state.paramValues['${p.key}']=this.value">`;
+    }
+
+    html += '</div>';
+  }
+
+  html += `
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="confirmChatParams()">Start Chat</button>
+    </div>`;
+
+  el.innerHTML = html;
+}
+
+function toggleChatParam(key, option) {
+  let val = state.paramValues[key] || '';
+  let arr = val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
+  if (arr.includes(option)) {
+    arr = arr.filter(x => x !== option);
+  } else {
+    arr.push(option);
+  }
+  state.paramValues[key] = arr.join(', ');
+  renderStep();
+}
+
+function confirmChatParams() {
+  const params = getActivePromptParams();
+  for (const p of params) {
+    if (p.required && !state.paramValues[p.key]?.trim()) {
+      alert(`"${p.label || p.key}" is required.`);
+      return;
+    }
+  }
+  state.chatParamsConfirmed = true;
+
+  // Inject a context message showing the active parameters
+  const lines = params
+    .map(p => {
+      const val = state.paramValues[p.key] || p.default || '';
+      if (!val) return null;
+      return `**${p.label || p.key}:** ${val}`;
+    })
+    .filter(Boolean);
+  if (lines.length > 0) {
+    state.chatHistory.push({
+      role: 'context',
+      content: 'Agent parameters set:\n' + lines.join('\n'),
+    });
+  }
+
+  renderStep();
+}
+
+function editChatParams() {
+  state.chatParamsConfirmed = false;
+  renderStep();
+}
+
+function renderParamSummaryBar() {
+  const params = getActivePromptParams();
+  const activeValues = params
+    .map(p => {
+      const val = state.paramValues[p.key] || p.default || '';
+      if (!val) return null;
+      return `<span class="param-chip">${esc(p.label || p.key)}: <strong>${esc(val)}</strong></span>`;
+    })
+    .filter(Boolean);
+
+  if (activeValues.length === 0) return '';
+
+  return `<div class="param-summary-bar" id="param-summary-bar">
+    <div class="param-summary-content">
+      <span class="param-summary-label">Parameters:</span>
+      <div class="param-summary-chips">${activeValues.join('')}</div>
+    </div>
+    <button class="btn btn-secondary btn-xs" onclick="editChatParams()">Edit</button>
+  </div>`;
+}
+
 function renderChatMessage(msg) {
+  if (msg.role === 'context') {
+    return `<div class="chat-bubble context">${DOMPurify.sanitize(marked.parse(msg.content || ''))}</div>`;
+  }
   let html = `<div class="chat-bubble ${msg.role}">`;
   if (msg.toolCalls && msg.toolCalls.length > 0) {
     html += `<div style="margin-bottom:6px">${msg.toolCalls.map(t => `<span class="chat-tool-badge">${esc(t)}</span>`).join('')}</div>`;
@@ -813,6 +1084,7 @@ async function sendChat() {
         agent_name: state.deployedAgent?.name || state.agentName,
         message,
         previous_response_id: state.previousResponseId,
+        param_values: state.paramValues,
       }),
     });
 
@@ -850,11 +1122,17 @@ function renderChatMessages() {
 
 /* ===== Agent Actions ===== */
 function updateAgent() {
+  // Preserve prompt params from deployed agent if builder is empty
+  if (state.deployedAgent?.prompt_params?.length > 0 && state.promptParams.length === 0) {
+    state.promptParams = state.deployedAgent.prompt_params.map(p => ({...p}));
+  }
   // Go back to step 1 with current config preserved
   state.step = 1;
   state.deployedAgent = null;
   state.chatHistory = [];
   state.previousResponseId = null;
+  state.chatParamsConfirmed = false;
+  state.paramValues = {};
   renderStep();
 }
 
@@ -891,7 +1169,6 @@ async function confirmDelete() {
 /* ===== Navigation ===== */
 function goToStep(n) {
   // Validation before advancing
-  if (n === 2 && Object.keys(state.selected).length === 0) return;
   if (n === 4) {
     state.agentName = document.getElementById('agent-name')?.value?.trim() || state.agentName;
     state.instructions = document.getElementById('agent-instructions')?.value?.trim() || state.instructions;

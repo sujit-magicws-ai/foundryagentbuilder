@@ -25,20 +25,35 @@ def _get_agent_model(client: AIProjectClient, agent_name: str) -> str:
         return get_settings().azure_ai_model_deployment_name
 
 
+def _resolve_param_context(param_values: dict[str, str]) -> str:
+    """Build a context block from param values to prepend to user message."""
+    lines = [f"- {k}: {v}" for k, v in param_values.items() if v]
+    if not lines:
+        return ""
+    return "Agent Parameters:\n" + "\n".join(lines) + "\n\n"
+
+
 def send_message(
     client: AIProjectClient,
     agent_name: str,
     message: str,
     previous_response_id: str | None = None,
+    param_values: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Send a message to a deployed agent and return the response."""
     try:
         openai_client = client.get_openai_client()
         model = _get_agent_model(client, agent_name)
 
+        user_content = message
+        if param_values:
+            context = _resolve_param_context(param_values)
+            if context:
+                user_content = context + message
+
         kwargs: dict[str, Any] = {
             "model": model,
-            "input": [{"role": "user", "content": message}],
+            "input": [{"role": "user", "content": user_content}],
             "extra_body": {
                 "agent": {"name": agent_name, "type": "agent_reference"},
             },

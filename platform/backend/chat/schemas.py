@@ -11,6 +11,7 @@ class ChatRequest(BaseModel):
     agent_name: str = Field(..., min_length=1)
     message: str = Field(..., min_length=1)
     previous_response_id: str | None = None
+    param_values: dict[str, str] = {}
 
 
 class ChatResponse(BaseModel):

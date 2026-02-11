@@ -16,5 +16,6 @@ def chat(body: ChatRequest, request: Request):
         agent_name=body.agent_name,
         message=body.message,
         previous_response_id=body.previous_response_id,
+        param_values=body.param_values,
     )
     return result
